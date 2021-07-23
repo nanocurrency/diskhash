@@ -1,18 +1,18 @@
+#include <cassert>
 #include <iostream>
 #include <limits>
-#include <string>
 #include <list>
 #include <memory>
-#include <cassert>
+#include <string>
 
 #include <diskhash.hpp>
 #include <helper_functions.hpp>
 
-void cpp_wrapper_slow_test();
-void cpp_wrapper_inserting_repeated_key_returns_false();
-void cpp_wrapper_successful_insert();
-void cpp_wrapper_filled_key_lookup_returns_value();
-void cpp_wrapper_empty_key_lookup_returns_null();
+void cpp_wrapper_slow_test ();
+void cpp_wrapper_inserting_repeated_key_returns_false ();
+void cpp_wrapper_successful_insert ();
+void cpp_wrapper_filled_key_lookup_returns_value ();
+void cpp_wrapper_empty_key_lookup_returns_null ();
 void cpp_wrapper_is_member_with_existing_key_returns_true ();
 void cpp_wrapper_is_member_with_unexisting_key_returns_false ();
 void cpp_wrapper_db_creates_ok_with_DHOpenRW ();
@@ -23,19 +23,19 @@ void cpp_wrapper_move_constructor ();
 int main (int argc, char ** argv)
 {
 	std::cout << "cpp_wrapper_slow_test ():" << std::endl;
-    cpp_wrapper_slow_test();
+	cpp_wrapper_slow_test ();
 
 	std::cout << "cpp_wrapper_inserting_repeated_key_returns_false ():" << std::endl;
-    cpp_wrapper_inserting_repeated_key_returns_false();
+	cpp_wrapper_inserting_repeated_key_returns_false ();
 
 	std::cout << "cpp_wrapper_successful_insert ():" << std::endl;
-    cpp_wrapper_successful_insert();
+	cpp_wrapper_successful_insert ();
 
 	std::cout << "cpp_wrapper_filled_key_lookup_returns_value ():" << std::endl;
-    cpp_wrapper_filled_key_lookup_returns_value();
+	cpp_wrapper_filled_key_lookup_returns_value ();
 
 	std::cout << "cpp_wrapper_empty_key_lookup_returns_null ():" << std::endl;
-    cpp_wrapper_empty_key_lookup_returns_null();
+	cpp_wrapper_empty_key_lookup_returns_null ();
 
 	std::cout << "cpp_wrapper_is_member_with_existing_key_returns_true ():" << std::endl;
 	cpp_wrapper_is_member_with_existing_key_returns_true ();
@@ -47,7 +47,7 @@ int main (int argc, char ** argv)
 	cpp_wrapper_db_creates_ok_with_DHOpenRW ();
 
 	std::cout << "cpp_wrapper_db_disk_persistence_works ():" << std::endl;
-    cpp_wrapper_db_disk_persistence_works ();
+	cpp_wrapper_db_disk_persistence_works ();
 
 	std::cout << "cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ():" << std::endl;
 	cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ();
@@ -55,14 +55,13 @@ int main (int argc, char ** argv)
 	std::cout << "void cpp_wrapper_move_constructor ():" << std::endl;
 	cpp_wrapper_move_constructor ();
 
-	delete_temp_db_path (get_temp_path());
+	delete_temp_db_path (get_temp_path ());
 	return 0;
 }
 
 template <
-	typename T,
-	typename = typename std::enable_if<std::is_integral<T>::value, T>::type
->
+typename T,
+typename = typename std::enable_if<std::is_integral<T>::value, T>::type>
 std::shared_ptr<dht::DiskHash<T>> get_shared_ptr_to_dht_db (int key_size = 32, dht::OpenMode open_mode = dht::DHOpenRW)
 {
 	const auto db_path = get_temp_db_path ();
@@ -70,7 +69,7 @@ std::shared_ptr<dht::DiskHash<T>> get_shared_ptr_to_dht_db (int key_size = 32, d
 	return dht_db;
 }
 
-void cpp_wrapper_slow_test()
+void cpp_wrapper_slow_test ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
@@ -86,7 +85,7 @@ void cpp_wrapper_slow_test()
 
 	for (auto k = keys.begin (); k != keys.end (); k++)
 	{
-		auto value = ht->lookup (k->c_str());
+		auto value = ht->lookup (k->c_str ());
 		if (!value)
 		{
 			std::cerr << "Value not found for key: " << *k << std::endl;
@@ -94,7 +93,7 @@ void cpp_wrapper_slow_test()
 	}
 }
 
-void cpp_wrapper_successful_insert()
+void cpp_wrapper_successful_insert ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
@@ -104,7 +103,7 @@ void cpp_wrapper_successful_insert()
 	assert (status);
 }
 
-void cpp_wrapper_inserting_repeated_key_returns_false()
+void cpp_wrapper_inserting_repeated_key_returns_false ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
@@ -115,17 +114,17 @@ void cpp_wrapper_inserting_repeated_key_returns_false()
 	assert (!status);
 }
 
-void cpp_wrapper_empty_key_lookup_returns_null()
+void cpp_wrapper_empty_key_lookup_returns_null ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
 
 	auto key (random_string (key_maxlen));
-	auto value = ht->lookup (key.c_str());
+	auto value = ht->lookup (key.c_str ());
 	assert (value == nullptr);
 }
 
-void cpp_wrapper_filled_key_lookup_returns_value()
+void cpp_wrapper_filled_key_lookup_returns_value ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
@@ -133,7 +132,7 @@ void cpp_wrapper_filled_key_lookup_returns_value()
 	auto key (random_string (key_maxlen));
 	auto insert_value (uint64_t (123));
 	ht->insert (key.c_str (), insert_value);
-	auto lookup_value_ptr = ht->lookup (key.c_str());
+	auto lookup_value_ptr = ht->lookup (key.c_str ());
 	assert (insert_value == *lookup_value_ptr);
 }
 
@@ -179,19 +178,19 @@ void cpp_wrapper_db_creates_ok_with_DHOpenRW ()
 
 void cpp_wrapper_db_disk_persistence_works ()
 {
-    auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
-    auto key (random_string (key_maxlen-1));
-    auto insert_value = uint64_t (12345);
-    const auto db_path = get_temp_db_path ();
-    {
-        auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRW);
-        auto insert_status = ht->insert (key.c_str (), insert_value);
-    }
-    {
-        auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRWNoCreate);
-        auto read_value = ht->lookup(key.c_str());
-        assert (insert_value == *read_value);
-    }
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto key (random_string (key_maxlen - 1));
+	auto insert_value = uint64_t (12345);
+	const auto db_path = get_temp_db_path ();
+	{
+		auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRW);
+		auto insert_status = ht->insert (key.c_str (), insert_value);
+	}
+	{
+		auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRWNoCreate);
+		auto read_value = ht->lookup (key.c_str ());
+		assert (insert_value == *read_value);
+	}
 }
 
 void cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ()
@@ -215,7 +214,7 @@ void cpp_wrapper_move_constructor ()
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
 
-	ht->insert("abc", 123);
-	auto another_ht (std::move(*ht));
-	assert (another_ht.is_member("abc"));
+	ht->insert ("abc", 123);
+	auto another_ht (std::move (*ht));
+	assert (another_ht.is_member ("abc"));
 }

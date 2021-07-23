@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include "diskhash.h"
+#include "os_wrappers.h"
 #include "primes.h"
 #include "rtable.h"
 
@@ -248,7 +249,11 @@ int dht_load_to_memory(HashTable* ht, char** err) {
     ht->data_ = malloc(ht->datasize_);
     if (ht->data_) {
         size_t n = (size_t) dht_read_file(ht->fd_, ht->data_, ht->datasize_);
-        if (n == ht->datasize_) return 0;
+        if (n == ht->datasize_)
+		{
+			ht->flags_ |= HT_FLAG_IS_LOADED;
+			return 0;
+		}
         else if (err) *err = "dht_load_to_memory: could not read data from file";
     } else {
         if (err) *err = "dht_load_to_memory: could not allocate memory.";
@@ -370,7 +375,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
     }
 
-    const char* temp_fname = strdup(temp_ht->fname_);
+    char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
         if (err) { *err = NULL; }
         dht_delete_file(temp_ht->fname_);
@@ -385,6 +390,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     dht_close_file(ht->fd_);
 
     rename(temp_fname, ht->fname_);
+	free((char*)temp_fname);
 
     temp_ht = dht_open(ht->fname_, opts, O_RDWR, err);
     if (!temp_ht) {
@@ -393,6 +399,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     }
     free((char*)ht->fname_);
     memcpy(ht, temp_ht, sizeof(HashTable));
+	free(temp_ht);
     assert(starting_slots == cheader_of(ht)->slots_used_);
     return cap;
 }

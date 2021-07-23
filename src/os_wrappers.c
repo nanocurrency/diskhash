@@ -97,7 +97,7 @@ bool dht_delete_file(const char* file_path)
 	}
 	free(wfile_path);
 #else
-    status = unlink(file_path) == 0;
+    success = unlink(file_path) == 0;
 #endif
     return success;
 }
@@ -115,8 +115,8 @@ bool dht_file_size(const dht_file_t file_descriptor, size_t* file_size)
     }
 #else
     struct stat st;
-    ret = fstat(rp->fd_, &st) == 0;
-    if (ret)
+    success = fstat(file_descriptor, &st) == 0;
+    if (success)
     {
         *file_size = st.st_size;
     }
@@ -239,7 +239,7 @@ bool dht_memory_map_file(const dht_file_t file_descriptor, const void** data_buf
                      MAP_SHARED,
                      file_descriptor,
                      0);
-    status = (*data_buffer != MAP_FAILED);
+    success = (*data_buffer != MAP_FAILED);
 #endif
     return success;
 }
@@ -250,7 +250,7 @@ bool dht_memory_unmap_file(void* data, const size_t size)
 #ifdef _WIN32
     success = UnmapViewOfFile(data) != 0;
 #else
-    status = munmap(data, size) == 0;
+    success = munmap(data, size) == 0;
 #endif
     return success;
 }
