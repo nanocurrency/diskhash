@@ -1,58 +1,45 @@
 cmake_minimum_required(VERSION 3.4)
 
-project(diskhash-wrappers)
+set(PROJECT_NAME diskhash-wrappers)
+set(DEPLOY_NAME ${PROJECT_NAME})
+set(CMAKE_CXX_STANDARD 17)
 
-#add_custom_target(all_targets DEPENDS c python haskell)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules/)
+message("CMake Module Path: " ${CMAKE_MODULE_PATH})
+project(${PROJECT_NAME})
 
-add_subdirectory(gtest)
-#set_target_properties(gtest PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-#        "${CMAKE_SOURCE_DIR}/gtest/googletest/include")
+include(setup)
 
+include_directories(${CMAKE_SOURCE_DIR}/src)
+add_library(diskhash STATIC
+	src/os_wrappers.c
+	src/diskhash.c
+)
 
-include_directories(src)
-include_directories(unittests)
+if(DISKHASH_TESTS)
+	include_directories(${CMAKE_SOURCE_DIR}/unittests )
 
-add_subdirectory(src)
+	add_executable (cpp_wrapper_tests
+		unittests/helper_functions.cpp
+		unittests/cpp_wrapper_tests.cpp
+	)
+	target_link_libraries (cpp_wrapper_tests diskhash)
 
-add_subdirectory(unittests)
-
-#add_custom_target(python DEPENDS build_python)
-
-#add_custom_target(haskell COMMAND stack build)
-
-#add_custom_target(check DEPENDS check_python check_haskell)
-
-#add_custom_target(check_haskell COMMAND stack test)
-
-#add_custom_target(build_python COMMAND python setup.py build_ext --inplace)
-
-#add_custom_target(
-#  check_python
-#  DEPENDS build_python
-#  COMMAND pytest)
-
-#add_custom_target(install_python python setup.py install)
-
-#option(WITH_ASAN "build with ASAN" OFF)
-#if(WITH_ASAN)
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
-#endif()
-
-option(WITH_TSAN "build with TSAN" OFF)
-if(WITH_TSAN)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread -pie")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fPIC")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread -fPIC")
+	add_executable (diskhash_tests
+		unittests/helper_functions.cpp
+		unittests/diskhash_tests.cpp
+	)
+	target_link_libraries (diskhash_tests diskhash)
 endif()
 
-option(WITH_UBSAN "build with UBSAN" OFF)
-if(WITH_UBSAN)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
-endif()
+if(NOT MSVC)
+	option(WITH_ASAN "build with ASAN" OFF)
+	if(WITH_ASAN)
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+	endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -g")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -g")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -g")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -g")
+endif()

@@ -4,13 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-
-#include <unistd.h>
-#include <fcntl.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
+#include <stdbool.h>
 
 #include "diskhash.h"
 #include "primes.h"
@@ -157,9 +151,15 @@ HashTableOpts dht_zero_opts() {
 
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err) {
     if (!fpath || !*fpath) return NULL;
-    const int fd = open(fpath, flags, 0644);
+    const dht_file_t fd = dht_open_file(fpath, flags, false);
     int needs_init = 0;
-    if (fd < 0) {
+    bool fd_err = false;
+#ifdef _WIN32
+    fd_err = fd == NULL;
+#else
+    fd_err = fd < 0;
+#endif
+    if (fd_err) {
         if (err) { *err = strdup("open call failed."); }
         return NULL;
     }
@@ -172,24 +172,22 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     rp->fname_ = strdup(fpath);
     if (!rp->fname_) {
         if (err) { *err = NULL; }
-        close(rp->fd_);
+        dht_close_file(rp->fd_);
         free(rp);
         return NULL;
     }
-    struct stat st;
-    fstat(rp->fd_, &st);
-    rp->datasize_ = st.st_size;
+    dht_file_size(rp->fd_, &rp->datasize_);
     if (rp->datasize_ == 0) {
         needs_init = 1;
         rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint32_t) + 3 * node_size_opts(opts);
-        if (ftruncate(fd, rp->datasize_) < 0) {
+        if (!dht_truncate_file(fd, rp->datasize_)) {
             if (err) {
                 *err = malloc(256);
                 if (*err) {
                     snprintf(*err, 256, "Could not allocate disk space. Error: %s.", strerror(errno));
                 }
             }
-            close(rp->fd_);
+            dht_close_file(rp->fd_);
             free((char*)rp->fname_);
             free(rp);
             return NULL;
@@ -200,15 +198,10 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
                                 PROT_READ
                                 : PROT_READ|PROT_WRITE;
     if (prot & PROT_WRITE) rp->flags_ |= HT_FLAG_CAN_WRITE;
-    rp->data_ = mmap(NULL,
-            rp->datasize_,
-            prot,
-            MAP_SHARED,
-            rp->fd_,
-            0);
-    if (rp->data_ == MAP_FAILED) {
+    bool map_success = dht_memory_map_file(rp->fd_, &rp->data_, rp->datasize_, prot);
+    if (!map_success) {
         if (err) { *err = strdup("mmap() call failed."); }
-        close(rp->fd_);
+        dht_close_file(rp->fd_);
         free((char*)rp->fname_);
         free(rp);
         return NULL;
@@ -251,32 +244,31 @@ int dht_load_to_memory(HashTable* ht, char** err) {
         if (err) *err = "dht_load_to_memory had already been called.";
         return 1;
     }
-    munmap(ht->data_, ht->datasize_);
+    dht_memory_unmap_file(ht->data_, ht->datasize_);
     ht->data_ = malloc(ht->datasize_);
     if (ht->data_) {
-        size_t n = read(ht->fd_, ht->data_, ht->datasize_);
+        size_t n = (size_t) dht_read_file(ht->fd_, ht->data_, ht->datasize_);
         if (n == ht->datasize_) return 0;
         else if (err) *err = "dht_load_to_memory: could not read data from file";
     } else {
         if (err) *err = "dht_load_to_memory: could not allocate memory.";
     }
     free(ht->data_);
-    fsync(ht->fd_);
-    close(ht->fd_);
+    dht_file_sync(ht->fd_);
+    dht_close_file(ht->fd_);
     free((char*)ht->fname_);
     free(ht);
     return 2;
-
 }
 
 void dht_free(HashTable* ht) {
     if (ht->flags_ & HT_FLAG_IS_LOADED) {
         free(ht->data_);
     } else {
-        munmap(ht->data_, ht->datasize_);
+        dht_memory_unmap_file(ht->data_, ht->datasize_);
     }
-    fsync(ht->fd_);
-    close(ht->fd_);
+    dht_file_sync(ht->fd_);
+    dht_close_file(ht->fd_);
     free((char*)ht->fname_);
     free(ht);
 }
@@ -330,11 +322,11 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
             free(temp_ht);
             return 0;
         }
-        temp_ht->fd_ = open(temp_ht->fname_, O_EXCL | O_CREAT | O_RDWR, 0600 );
+        temp_ht->fd_ = dht_open_file(temp_ht->fname_, O_EXCL | O_CREAT | O_RDWR, true);
         if (temp_ht->fd_) break;
         free((char*)temp_ht->fname_);
     }
-    if (ftruncate(temp_ht->fd_, total_size) < 0) {
+    if (!dht_truncate_file(temp_ht->fd_, total_size)) {
         if (err) {
             *err = malloc(256);
             if (*err) {
@@ -346,14 +338,9 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
         return 0;
     }
     temp_ht->datasize_ = total_size;
-    temp_ht->data_ = mmap(NULL,
-            temp_ht->datasize_,
-            PROT_READ|PROT_WRITE,
-            MAP_SHARED,
-            temp_ht->fd_,
-            0);
+    bool map_success = dht_memory_map_file(temp_ht->fd_, &temp_ht->data_, temp_ht->datasize_, PROT_READ | PROT_WRITE);
     temp_ht->flags_ = ht->flags_;
-    if (temp_ht->data_ == MAP_FAILED) {
+    if (!map_success) {
         if (err) {
             const int errorbufsize = 512;
             *err = (char*)malloc(errorbufsize);
@@ -361,8 +348,8 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
                 snprintf(*err, errorbufsize, "Could not mmap() new hashtable: %s.\n", strerror(errno));
             }
         }
-        close(temp_ht->fd_);
-        unlink(temp_ht->fname_);
+        dht_close_file(temp_ht->fd_);
+        dht_delete_file(temp_ht->fname_);
         free((char*)temp_ht->fname_);
         free(temp_ht);
         return 0;
@@ -386,7 +373,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     const char* temp_fname = strdup(temp_ht->fname_);
     if (!temp_fname) {
         if (err) { *err = NULL; }
-        unlink(temp_ht->fname_);
+        dht_delete_file(temp_ht->fname_);
         dht_free(temp_ht);
         return 0;
     }
@@ -394,11 +381,10 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     dht_free(temp_ht);
     const HashTableOpts opts = header_of(ht)->opts_;
 
-    munmap(ht->data_, ht->datasize_);
-    close(ht->fd_);
+    dht_memory_unmap_file(ht->data_, ht->datasize_);
+    dht_close_file(ht->fd_);
 
     rename(temp_fname, ht->fname_);
-	free(temp_fname);
 
     temp_ht = dht_open(ht->fname_, opts, O_RDWR, err);
     if (!temp_ht) {
@@ -407,7 +393,6 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     }
     free((char*)ht->fname_);
     memcpy(ht, temp_ht, sizeof(HashTable));
-	free(temp_ht);
     assert(starting_slots == cheader_of(ht)->slots_used_);
     return cap;
 }
@@ -464,4 +449,3 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
 
     return 1;
 }
-
