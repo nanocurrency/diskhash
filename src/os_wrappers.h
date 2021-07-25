@@ -42,7 +42,7 @@ bool dht_delete_file(const char* file_path);
 bool dht_file_size(const dht_file_t file_descriptor, size_t* file_size);
 bool dht_truncate_file(const dht_file_t file_descriptor, const size_t file_size);
 bool dht_file_sync(const dht_file_t file_descriptor);
-bool dht_memory_map_file(const dht_file_t file_descriptor, const void** data_buffer, const size_t data_size, const int protections);
+bool dht_memory_map_file(const dht_file_t file_descriptor, void** data_buffer, const size_t data_size, const int protections);
 bool dht_memory_unmap_file(void* data, const size_t size);
 
 #ifdef __cplusplus

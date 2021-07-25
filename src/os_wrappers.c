@@ -206,7 +206,7 @@ bool dht_utf8_to_utf16(const char* src, unsigned short** dst)
 }
 #endif
 
-bool dht_memory_map_file(const dht_file_t file_descriptor, const void** data_buffer, const size_t data_size, const int protections)
+bool dht_memory_map_file(const dht_file_t file_descriptor, void** data_buffer, const size_t data_size, const int protections)
 {
     bool success = false;
 #ifdef _WIN32
