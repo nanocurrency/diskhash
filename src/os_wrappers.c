@@ -34,8 +34,7 @@ dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access)
 {
     dht_file_t file_descriptor = 0;
 #ifdef _WIN32
-    LPCWSTR wfile_path = NULL;
-    LPOFSTRUCT file_info = { 0 };
+    WCHAR* wfile_path = NULL;
     DWORD acc = 0;
     DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE;
     DWORD disp = OPEN_ALWAYS;
@@ -57,7 +56,7 @@ dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access)
         acc |= GENERIC_WRITE;
     }
     wfile_path = malloc((strlen(file_path)+1) * sizeof(WCHAR));
-    if (!wfile_path || !dht_utf8_to_utf16(file_path, (LPCWSTR*) &wfile_path))
+    if (!wfile_path || !dht_utf8_to_utf16(file_path, (unsigned short**) &wfile_path))
     {
         free(wfile_path);
         return file_descriptor;
@@ -88,9 +87,9 @@ bool dht_delete_file(const char* file_path)
 {
     bool success = false;
 #ifdef _WIN32
-    LPCWSTR wfile_path = NULL;
+    WCHAR* wfile_path = NULL;
     wfile_path = malloc((strlen(file_path)+1) * sizeof(WCHAR));
-	if (wfile_path && dht_utf8_to_utf16 (file_path, (LPCWSTR*) &wfile_path))
+	if (wfile_path && dht_utf8_to_utf16 (file_path, (unsigned short**) &wfile_path))
 	{
 		success = DeleteFileW (wfile_path) != 0;
 	}

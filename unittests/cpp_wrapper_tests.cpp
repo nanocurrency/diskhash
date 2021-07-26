@@ -83,12 +83,12 @@ void cpp_wrapper_slow_test ()
 		ht->insert (key.c_str (), index++);
 	}
 
-	for (auto k = keys.begin (); k != keys.end (); k++)
+	for (auto & key : keys)
 	{
-		auto value = ht->lookup (k->c_str ());
+		auto value = ht->lookup (key.c_str ());
 		if (!value)
 		{
-			std::cerr << "Value not found for key: " << *k << std::endl;
+			std::cerr << "Value not found for key: " << key << std::endl;
 		}
 	}
 }
@@ -184,7 +184,7 @@ void cpp_wrapper_db_disk_persistence_works ()
 	const auto db_path = get_temp_db_path ();
 	{
 		auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRW);
-		auto insert_status = ht->insert (key.c_str (), insert_value);
+		ht->insert (key.c_str (), insert_value);
 	}
 	{
 		auto ht = std::make_shared<dht::DiskHash<uint64_t>> (db_path.c_str (), key_maxlen, dht::DHOpenRWNoCreate);
