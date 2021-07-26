@@ -8,7 +8,6 @@
 #else
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #endif
@@ -31,7 +30,7 @@ int dht_read_file (dht_file_t file_descriptor, void *buffer, size_t size)
     return read_size;
 }
 
-dht_file_t dht_open_file(const char* file_path, const unsigned int flags, const bool limited_access)
+dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access)
 {
     dht_file_t file_descriptor = 0;
 #ifdef _WIN32
@@ -76,7 +75,7 @@ dht_file_t dht_open_file(const char* file_path, const unsigned int flags, const 
     return file_descriptor;
 }
 
-void dht_close_file(const dht_file_t file_descriptor)
+void dht_close_file(dht_file_t file_descriptor)
 {
 #ifdef _WIN32
     CloseHandle(file_descriptor);
@@ -102,7 +101,7 @@ bool dht_delete_file(const char* file_path)
     return success;
 }
 
-bool dht_file_size(const dht_file_t file_descriptor, size_t* file_size)
+bool dht_file_size(dht_file_t file_descriptor, size_t* file_size)
 {
     bool success = false;
     *file_size = 0;
@@ -124,7 +123,7 @@ bool dht_file_size(const dht_file_t file_descriptor, size_t* file_size)
     return success;
 }
 
-bool dht_truncate_file(const dht_file_t file_descriptor, const size_t file_size)
+bool dht_truncate_file(dht_file_t file_descriptor, size_t file_size)
 {
     bool success = false;
 #ifdef _WIN32
@@ -140,7 +139,7 @@ bool dht_truncate_file(const dht_file_t file_descriptor, const size_t file_size)
     return success;
 }
 
-bool dht_file_sync(const dht_file_t file_descriptor)
+bool dht_file_sync(dht_file_t file_descriptor)
 {
     bool success = false;
 #ifdef _WIN32
@@ -152,7 +151,7 @@ bool dht_file_sync(const dht_file_t file_descriptor)
 }
 
 #ifdef _WIN32
-int dht_win32_page_protections(const int protections)
+int dht_win32_page_protections(int protections)
 {
     int __win_protections = 0;
     if (protections & PROT_READ && protections & PROT_WRITE && protections & PROT_EXEC)
@@ -170,7 +169,7 @@ int dht_win32_page_protections(const int protections)
     return __win_protections;
 }
 
-int dht_win32_file_mapping_access(const int page_protections)
+int dht_win32_file_mapping_access(int page_protections)
 {
     int file_mapping_access = (page_protections == PAGE_READONLY) ? FILE_MAP_READ : FILE_MAP_WRITE;
     return file_mapping_access;
@@ -206,7 +205,7 @@ bool dht_utf8_to_utf16(const char* src, unsigned short** dst)
 }
 #endif
 
-bool dht_memory_map_file(const dht_file_t file_descriptor, void** data_buffer, const size_t data_size, const int protections)
+bool dht_memory_map_file(dht_file_t file_descriptor, void** data_buffer, size_t data_size, int protections)
 {
     bool success = false;
 #ifdef _WIN32
@@ -244,7 +243,7 @@ bool dht_memory_map_file(const dht_file_t file_descriptor, void** data_buffer, c
     return success;
 }
 
-bool dht_memory_unmap_file(void* data, const size_t size)
+bool dht_memory_unmap_file(void* data, size_t size)
 {
     bool success = false;
 #ifdef _WIN32

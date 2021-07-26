@@ -31,19 +31,19 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-int dht_win32_page_protections(const int protections);
-int dht_win32_file_mapping_access(const int page_protections);
+int dht_win32_page_protections(int protections);
+int dht_win32_file_mapping_access(int page_protections);
 bool dht_utf8_to_utf16(const char* src, unsigned short** dst);
 #endif
 int dht_read_file (dht_file_t file_descriptor, void * buffer, size_t size);
-dht_file_t dht_open_file(const char* file_path, const unsigned int flags, const bool limited_access);
-void dht_close_file(const dht_file_t file_descriptor);
+dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access);
+void dht_close_file(dht_file_t file_descriptor);
 bool dht_delete_file(const char* file_path);
-bool dht_file_size(const dht_file_t file_descriptor, size_t* file_size);
-bool dht_truncate_file(const dht_file_t file_descriptor, const size_t file_size);
-bool dht_file_sync(const dht_file_t file_descriptor);
-bool dht_memory_map_file(const dht_file_t file_descriptor, void** data_buffer, const size_t data_size, const int protections);
-bool dht_memory_unmap_file(void* data, const size_t size);
+bool dht_file_size(dht_file_t file_descriptor, size_t* file_size);
+bool dht_truncate_file(dht_file_t file_descriptor, size_t file_size);
+bool dht_file_sync(dht_file_t file_descriptor);
+bool dht_memory_map_file(dht_file_t file_descriptor, void** data_buffer, size_t data_size, int protections);
+bool dht_memory_unmap_file(void* data, size_t size);
 
 #ifdef __cplusplus
 } /* extern "C" */
