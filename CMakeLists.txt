@@ -9,6 +9,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 message("CMake Module Path: " ${CMAKE_MODULE_PATH})
 project(${PROJECT_NAME})
 
+option(WITH_ASAN ON)
+option(DISKHASH_TESTS ON)
+
 include(setup)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
