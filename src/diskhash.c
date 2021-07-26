@@ -114,7 +114,7 @@ void show_ht(const HashTable* ht) {
     fprintf(stderr, "HT {\n"
                 "\tmagic = \"%s\",\n"
                 "\tcursize = %d,\n"
-                "\tslots used = %ld\n"
+                "\tslots used = %zd\n"
                 "\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
 
     uint64_t i;
@@ -303,6 +303,11 @@ char* generate_tempname_from(const char* base) {
 }
 
 size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
+	if (!ht)
+	{
+		if (err) { *err = strdup("Invalid null HashTable object."); }
+		return -EINVAL;
+	}
     if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
         if (err) { *err = strdup("Hash table is read-only. Cannot call dht_reserve."); }
         return -EACCES;
@@ -320,10 +325,15 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
 
     HashTable* temp_ht = (HashTable*)malloc(sizeof(HashTable));
+	if (!temp_ht)
+	{
+		if (err) { *err = strdup("dht_reserve: could not allocate memory."); }
+		return 0;
+	}
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
-            if (err) { *err = NULL; }
+            if (err) { *err = strdup("dht_reserve: could not allocate memory."); }
             free(temp_ht);
             return 0;
         }
