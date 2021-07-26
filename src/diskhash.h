@@ -1,6 +1,7 @@
 #ifndef DISKHASH_H_INCLUDE_GUARD__
 #define DISKHASH_H_INCLUDE_GUARD__
 #include <stddef.h>
+#include "os_wrappers.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,7 +25,7 @@ typedef struct HashTableOpts {
 } HashTableOpts;
 
 typedef struct HashTable {
-    int fd_;
+    dht_file_t fd_;
     const char* fname_;
     void* data_;
     size_t datasize_;

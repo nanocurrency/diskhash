@@ -1,8 +1,12 @@
 #include <fstream>
 #include <iostream>
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#endif
+
+#include <string>
 #include <inttypes.h>
 
 #include "diskhash.hpp"

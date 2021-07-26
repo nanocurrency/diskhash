@@ -4,3 +4,8 @@
 /dist/
 /diskhash.egg-info/
 /.cache/
+src/cmake-build-debug/*
+src/build/*
+/src/.idea/*
+/.idea/*
+.clang-format
