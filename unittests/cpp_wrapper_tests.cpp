@@ -19,6 +19,7 @@ void cpp_wrapper_db_creates_ok_with_DHOpenRW ();
 void cpp_wrapper_db_disk_persistence_works ();
 void cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ();
 void cpp_wrapper_move_constructor ();
+void cpp_wrapper_clear_cleans_the_table ();
 
 int main (int argc, char ** argv)
 {
@@ -54,6 +55,9 @@ int main (int argc, char ** argv)
 
 	std::cout << "void cpp_wrapper_move_constructor ():" << std::endl;
 	cpp_wrapper_move_constructor ();
+
+	std::cout << "cpp_wrapper_clear_cleans_the_table ():" << std::endl;
+	cpp_wrapper_clear_cleans_the_table ();
 
 	delete_temp_db_path (get_temp_path ());
 	return 0;
@@ -217,4 +221,18 @@ void cpp_wrapper_move_constructor ()
 	ht->insert ("abc", 123);
 	auto another_ht (std::move (*ht));
 	assert (another_ht.is_member ("abc"));
+}
+
+void cpp_wrapper_clear_cleans_the_table ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	auto insert_value (uint64_t (123));
+	ht->insert (key.c_str (), insert_value);
+	assert (ht->size () > 0);
+
+	ht->clear();
+	assert (ht->size () == 0);
 }
