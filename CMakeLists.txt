@@ -27,6 +27,10 @@ if(DISKHASH_TESTS)
   add_executable(diskhash_tests unittests/helper_functions.cpp
                                 unittests/diskhash_tests.cpp)
   target_link_libraries(diskhash_tests diskhash)
+
+  add_executable(os_wrappers_tests unittests/helper_functions.cpp
+                                   unittests/os_wrappers_tests.cpp)
+  target_link_libraries(os_wrappers_tests diskhash)
 endif()
 
 if(NOT MSVC)
