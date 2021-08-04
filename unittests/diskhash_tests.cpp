@@ -9,6 +9,7 @@ void diskhash_requires_o_creat_to_create_new_db ();
 void diskhash_db_saved_correctly ();
 void diskhash_key_maxlen_equals_to_key_size_returns_error ();
 void diskhash_inserts_successfully ();
+void diskhash_updates_successfully ();
 void diskhash_lookup_retrieves_null_for_inexistent_key ();
 void diskhash_lookup_retrieves_inserted_value ();
 void diskhash_check_capacity ();
@@ -39,6 +40,9 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_inserts_successfully ():\n");
 	diskhash_inserts_successfully ();
+
+	printf ("diskhash_updates_successfully ():\n");
+	diskhash_updates_successfully ();
 
 	printf ("diskhash_lookup_retrieves_inserted_value ():\n");
 	diskhash_lookup_retrieves_inserted_value ();
@@ -159,6 +163,28 @@ void diskhash_inserts_successfully ()
 	int insert_val = 123456;
 	int insert_ret = dht_insert (ht, key, &insert_val, &err);
 	assert (insert_ret == 1);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_updates_successfully ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	auto insert_ret = dht_insert (ht, key, &insert_val, &err);
+	insert_val = 456;
+	insert_ret = dht_insert (ht, key, &insert_val, &err);
+	int* read_val = (int*) dht_lookup (ht, key);
+	assert (insert_val == *read_val);
 
 	free ((char *)db_path);
 	dht_free (ht);
