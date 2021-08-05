@@ -1,5 +1,5 @@
-#ifndef __CPP_WRAPPER_TESTS_H__
-#define __CPP_WRAPPER_TESTS_H__
+#ifndef __HELPER_FUNCTIONS_H__
+#define __HELPER_FUNCTIONS_H__
 
 #include <filesystem>
 #include <random>
@@ -13,4 +13,4 @@ std::string get_temp_db_path ();
 void delete_temp_db_path (std::filesystem::path temp_path);
 std::string random_string (size_t size = 32);
 
-#endif // __CPP_WRAPPER_TESTS_H__
+#endif // __HELPER_FUNCTIONS_H__
