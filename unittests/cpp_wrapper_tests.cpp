@@ -6,7 +6,7 @@
 #include <string>
 
 #include <diskhash.hpp>
-#include <helper_functions.hpp>
+#include "helper_functions.hpp"
 
 void cpp_wrapper_slow_test ();
 void cpp_wrapper_inserting_repeated_key_returns_false ();
