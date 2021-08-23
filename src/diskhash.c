@@ -467,3 +467,17 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
 
     return 1;
 }
+
+int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
+    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
+        if (err) { *err = strdup ("Hash table is read-only. Cannot update."); }
+        return -EACCES;
+    }
+    void * data_ptr = dht_lookup (ht, key);
+    if (data_ptr) {
+        memcpy (data_ptr, data, header_of (ht)->opts_.object_datalen);
+        return 1;
+    }
+    if (err) { *err = strdup ("Key was not found."); }
+    return 0;
+}
