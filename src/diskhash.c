@@ -127,8 +127,7 @@ void show_ht(const HashTable* ht) {
 }
 
 static
-HashTableEntry entry_at(const HashTable* ht, size_t hash) {
-    size_t ix = get_table_at(ht, hash);
+HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     HashTableEntry r;
     if (ix == 0) {
         r.ht_key = 0;
@@ -143,6 +142,12 @@ HashTableEntry entry_at(const HashTable* ht, size_t hash) {
     r.ht_key = node_data + ix * node_size(ht);
     r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
     return r;
+}
+
+static
+HashTableEntry entry_at(const HashTable* ht, size_t hash) {
+    size_t ix = get_table_at(ht, hash);
+    return entry_by_index(ht, ix);
 }
 
 HashTableOpts dht_zero_opts() {
@@ -416,6 +421,22 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
 
 size_t dht_size(const HashTable* ht) {
     return cheader_of(ht)->slots_used_;
+}
+
+int dht_indexed_lookup (HashTable* ht, size_t index, char** key, void* data, char** err) {
+    if (index >= cheader_of(ht)->slots_used_) {
+        if (err) { *err = strdup("The index is out-of-range."); }
+        return -EINVAL;
+    }
+    HashTableEntry et;
+    et = entry_by_index(ht, (index + 1));
+    if (!entry_empty(et)) {
+        strncpy(*key, et.ht_key, cheader_of(ht)->opts_.key_maxlen);
+        memcpy(data, et.ht_data, cheader_of(ht)->opts_.object_datalen);
+        return 1;
+    }
+    if (err) { *err = strdup("The informed index doesn't contain any data."); }
+    return -EFAULT;
 }
 
 void* dht_lookup(const HashTable* ht, const char* key) {

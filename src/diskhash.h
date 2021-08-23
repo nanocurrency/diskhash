@@ -180,6 +180,27 @@ size_t dht_reserve(HashTable*, size_t capacity, char** err);
  */
 size_t dht_size(const HashTable*);
 
+/** Lookup by the store table index.
+ *
+ * As new entries are inserted on the hash table, there is a sequence cursor
+ * that is increased for each entry. This sequence cursor is used as an index
+ * to the store table and its reference is saved on the first position probed
+ * available after the calculated hash index.
+ *
+ * This function returns the contents stored on the specified index table.
+ * The current sequence number N is equal to dht_size(), so the accessible
+ * range is [0,N).
+ *
+ * Returns 1 if the key/value was accessed.
+ *         -EINVAL : The index is out-of-range.
+ *         -EFAULT : The informed index doesn't contain any data.
+ *
+ * Thread safety: multiple concurrent reads are perfectly safe. No guarantees
+ * are given whenever writing is performed. Similarly, if you write to the
+ * output of this function (the key/data fields), no guarantees are given.
+ */
+int dht_indexed_lookup (HashTable* ht, size_t index, char** key, void* data, char** err);
+
 /** Free the hashtable and sync to disk.
  */
 void dht_free(HashTable*);
