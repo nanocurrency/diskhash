@@ -132,6 +132,25 @@ void* dht_lookup(const HashTable*, const char* key);
  */
 int dht_insert(HashTable*, const char* key, const void* data, char** err);
 
+/** Update a value.
+ *
+ * The hashtable must be opened in read write mode.
+ *
+ * If the given key is not present in the table, then no action is performed
+ * and 0 is returned.
+ *
+ * Returns 1 if the value was updated.
+ *         0 if the key is not found in the table.
+ *         -EACCES : attempted to insert into a read-only table.
+ *
+ * The last argument is an error output argument. If it is set to a non-NULL
+ * value, then the memory must be released with free(). Passing NULL is valid
+ * (and no error message will be produced). An error return with *err == NULL
+ * will mean an out-of-memory error (when dht fails to allocate memory, it does
+ * not try to allocate memory for an error message).
+ */
+int dht_update(HashTable* ht, const char* key, const void* data, char** err);
+
 /** Preallocate memory for the table.
  *
  * Calling this function if the number of elements is known apriori can improve

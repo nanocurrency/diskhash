@@ -7,6 +7,7 @@
 void diskhash_creates_db_file_successfully ();
 void diskhash_requires_o_creat_to_create_new_db ();
 void diskhash_db_saved_correctly ();
+void diskhash_db_saved_correctly_after_update ();
 void diskhash_key_maxlen_equals_to_key_size_returns_error ();
 void diskhash_inserts_successfully ();
 void diskhash_updates_successfully ();
@@ -34,6 +35,9 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_db_saved_correctly ():\n");
 	diskhash_db_saved_correctly ();
+
+	printf ("diskhash_db_saved_correctly_after_update ():\n");
+	diskhash_db_saved_correctly_after_update ();
 
 	printf ("diskhash_key_maxlen_equals_to_key_size_returns_error ():\n");
 	diskhash_key_maxlen_equals_to_key_size_returns_error ();
@@ -128,6 +132,31 @@ void diskhash_db_saved_correctly ()
 	dht_free (ht);
 }
 
+void diskhash_db_saved_correctly_after_update ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	int insert_val = 123456;
+	dht_insert (ht, key, &insert_val, &err);
+	int update_val = 789;
+	dht_update (ht, key, &update_val, &err);
+	dht_free (ht);
+
+	int * read_value = NULL;
+	ht = dht_open (db_path, opts, O_RDWR, &err);
+	read_value = (int *)dht_lookup (ht, key);
+	assert (*read_value == update_val);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
 void diskhash_key_maxlen_equals_to_key_size_returns_error ()
 {
 	const char * db_path = strdup (get_temp_db_path ().c_str ());
@@ -180,11 +209,11 @@ void diskhash_updates_successfully ()
 	HashTable * ht = dht_open (db_path, opts, flags, &err);
 
 	int insert_val = 123;
-	auto insert_ret = dht_insert (ht, key, &insert_val, &err);
-	insert_val = 456;
-	insert_ret = dht_insert (ht, key, &insert_val, &err);
+	dht_insert (ht, key, &insert_val, &err);
+	int update_val = 456;
+	dht_update (ht, key, &update_val, &err);
 	int* read_val = (int*) dht_lookup (ht, key);
-	assert (insert_val == *read_val);
+	assert (update_val == *read_val);
 
 	free ((char *)db_path);
 	dht_free (ht);
