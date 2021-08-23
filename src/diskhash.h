@@ -120,7 +120,7 @@ void* dht_lookup(const HashTable*, const char* key);
  * Returns 1 if the value was inserted.
  *         0 if the key was already present in the table. The hash table was
  *         not modified.
- *         -EINVAL : key is too long
+ *         -EINVAL : key is too long.
  *         -EACCES : attempted to insert into a read-only table.
  *	       -ENOMEM : dht_reserve failed.
  *
