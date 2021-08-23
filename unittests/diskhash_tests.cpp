@@ -171,7 +171,7 @@ void diskhash_key_maxlen_equals_to_key_size_returns_error ()
 	int insert_val = 123456;
 	int insert_ret = dht_insert (ht, key, &insert_val, &err);
 	assert (insert_ret == -EINVAL);
-	assert (!strcmp ("Key is too long", err));
+	assert (!strcmp ("Key is too long.", err));
 
 	free ((char *)db_path);
 	free ((char *)err);

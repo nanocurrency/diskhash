@@ -11,6 +11,9 @@
 #include "primes.h"
 #include "rtable.h"
 
+static const size_t INITIAL_SIZE = 7;
+static const size_t INITIAL_CAPACITY = 3;
+
 enum {
     HT_FLAG_CAN_WRITE = 1,
     HT_FLAG_HASH_2 = 2,
@@ -86,27 +89,26 @@ void* hashtable_of(HashTable* ht) {
     return (unsigned char*)ht->data_ + sizeof(HashTableHeader);
 }
 
-
 static
-uint64_t get_table_at(const HashTable* ht, uint64_t ix) {
-    assert(ix < cheader_of(ht)->cursize_);
+uint64_t get_table_at(const HashTable* ht, uint64_t hash) {
+    assert(hash < cheader_of(ht)->cursize_);
     if (is_64bit(ht)) {
         uint64_t* table = (uint64_t*)hashtable_of((HashTable*)ht);
-        return table[ix];
+        return table[hash];
     } else {
         uint32_t* table = (uint32_t*)hashtable_of((HashTable*)ht);
-        return table[ix];
+        return table[hash];
     }
 }
 
 static
-void set_table_at(HashTable* ht, uint64_t ix, const uint64_t val) {
+void set_table_at(HashTable* ht, uint64_t hash, const uint64_t val) {
     if (is_64bit(ht)) {
         uint64_t* table = (uint64_t*)hashtable_of(ht);
-        table[ix] = val;
+        table[hash] = val;
     } else {
         uint32_t* table = (uint32_t*)hashtable_of(ht);
-        table[ix] = val;
+        table[hash] = val;
     }
 }
 
@@ -125,8 +127,8 @@ void show_ht(const HashTable* ht) {
 }
 
 static
-HashTableEntry entry_at(const HashTable* ht, size_t ix) {
-    ix = get_table_at(ht, ix);
+HashTableEntry entry_at(const HashTable* ht, size_t hash) {
+    size_t ix = get_table_at(ht, hash);
     HashTableEntry r;
     if (ix == 0) {
         r.ht_key = 0;
@@ -180,7 +182,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     dht_file_size(rp->fd_, &rp->datasize_);
     if (rp->datasize_ == 0) {
         needs_init = 1;
-        rp->datasize_ = sizeof(HashTableHeader) + 7 * sizeof(uint32_t) + 3 * node_size_opts(opts);
+        rp->datasize_ = sizeof(HashTableHeader) + INITIAL_SIZE * sizeof(uint32_t) + INITIAL_CAPACITY * node_size_opts(opts);
         if (!dht_truncate_file(fd, rp->datasize_)) {
             if (err) {
                 *err = malloc(256);
@@ -210,7 +212,7 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     if (needs_init) {
         strcpy(header_of(rp)->magic, "DiskBasedHash11");
         header_of(rp)->opts_ = opts;
-        header_of(rp)->cursize_ = 7;
+        header_of(rp)->cursize_ = INITIAL_SIZE;
         header_of(rp)->slots_used_ = 0;
     } else if (strcmp(header_of(rp)->magic, "DiskBasedHash11")) {
         if (!strcmp(header_of(rp)->magic, "DiskBasedHash10")) {
@@ -249,11 +251,10 @@ int dht_load_to_memory(HashTable* ht, char** err) {
     ht->data_ = malloc(ht->datasize_);
     if (ht->data_) {
         size_t n = (size_t) dht_read_file(ht->fd_, ht->data_, ht->datasize_);
-        if (n == ht->datasize_)
-		{
-			ht->flags_ |= HT_FLAG_IS_LOADED;
-			return 0;
-		}
+        if (n == ht->datasize_) {
+            ht->flags_ |= HT_FLAG_IS_LOADED;
+            return 0;
+        }
         else if (err) *err = "dht_load_to_memory: could not read data from file";
     } else {
         if (err) *err = "dht_load_to_memory: could not allocate memory.";
@@ -303,11 +304,10 @@ char* generate_tempname_from(const char* base) {
 }
 
 size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
-	if (!ht)
-	{
-		if (err) { *err = strdup("Invalid null HashTable object."); }
-		return -EINVAL;
-	}
+    if (!ht) {
+        if (err) { *err = strdup("Invalid null HashTable object."); }
+        return -EINVAL;
+    }
     if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
         if (err) { *err = strdup("Hash table is read-only. Cannot call dht_reserve."); }
         return -EACCES;
@@ -325,11 +325,10 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
 
     HashTable* temp_ht = (HashTable*)malloc(sizeof(HashTable));
-	if (!temp_ht)
-	{
-		if (err) { *err = strdup("dht_reserve: could not allocate memory."); }
-		return 0;
-	}
+    if (!temp_ht) {
+        if (err) { *err = strdup("dht_reserve: could not allocate memory."); }
+        return 0;
+    }
     while (1) {
         temp_ht->fname_ = generate_tempname_from(ht->fname_);
         if (!temp_ht->fname_) {
@@ -424,7 +423,7 @@ void* dht_lookup(const HashTable* ht, const char* key) {
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         HashTableEntry et = entry_at(ht, h);
-        if (!et.ht_key) return NULL;
+        if (entry_empty(et)) return NULL;
         if (!strcmp(et.ht_key, key)) return et.ht_data;
         ++h;
         if (h == cheader_of(ht)->cursize_) h = 0;
@@ -439,7 +438,7 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
         return -EACCES;
     }
     if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
-        if (err) { *err = strdup("Key is too long"); }
+        if (err) { *err = strdup("Key is too long."); }
         return -EINVAL;
     }
     /* Max load is 50% */
@@ -464,7 +463,6 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
 
     strcpy((char*)et.ht_key, key);
     memcpy(et.ht_data, data, cheader_of(ht)->opts_.object_datalen);
-
     return 1;
 }
 
