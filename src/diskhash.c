@@ -25,9 +25,12 @@ typedef struct HashTableHeader {
     HashTableOpts opts_;
     size_t cursize_;
     size_t slots_used_;
+    size_t dirty_slots_;
+    size_t capacity_;
 } HashTableHeader;
 
 typedef struct HashTableEntry {
+    uint64_t* offset_;
     const char* ht_key;
     void* ht_data;
 } HashTableEntry;
@@ -112,12 +115,46 @@ void set_table_at(HashTable* ht, uint64_t hash, const uint64_t val) {
     }
 }
 
+static
+uint64_t* dirty_at(HashTable* ht, size_t dirty_slot) {
+    const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
+    const char* node_data = (const char*)ht->data_
+                                + sizeof(HashTableHeader)
+                                + cheader_of(ht)->cursize_ * sizeof_table_elem
+                                + cheader_of(ht)->capacity_ * node_size(ht);
+
+    uint64_t* dirty_entry = (size_t*)node_data + dirty_slot * sizeof_table_elem;
+    return dirty_entry;
+}
+
+static
+void set_dirty_index (HashTable* ht, uint64_t dirty_slot, size_t dirty_index) {
+    assert(dirty_slot < cheader_of(ht)->capacity_);
+    uint64_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
+    *dirty_slot_ptr = dirty_index;
+}
+
+static
+uint64_t get_dirty_index (HashTable* ht, size_t dirty_slot) {
+    assert(dirty_slot < cheader_of(ht)->capacity_);
+    assert(dirty_slot < cheader_of(ht)->dirty_slots_);
+    uint64_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
+    return *dirty_slot_ptr;
+}
+
 void show_ht(const HashTable* ht) {
     fprintf(stderr, "HT {\n"
                 "\tmagic = \"%s\",\n"
                 "\tcursize = %d,\n"
                 "\tslots used = %zd\n"
-                "\n", cheader_of(ht)->magic, (int)cheader_of(ht)->cursize_, cheader_of(ht)->slots_used_);
+                "\tdirty slots = %zd\n"
+                "\tcapacity = %zd\n"
+                "\n",
+                cheader_of(ht)->magic,
+                (int)cheader_of(ht)->cursize_,
+                cheader_of(ht)->slots_used_,
+                cheader_of(ht)->dirty_slots_,
+                cheader_of(ht)->capacity_);
 
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
@@ -130,6 +167,7 @@ static
 HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     HashTableEntry r;
     if (ix == 0) {
+        r.offset_ = 0;
         r.ht_key = 0;
         r.ht_data = 0;
         return r;
@@ -139,8 +177,9 @@ HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     const char* node_data = (const char*)ht->data_
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
-    r.ht_key = node_data + ix * node_size(ht);
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.offset_ = (uint64_t*)( node_data + ix * node_size(ht) );
+    r.ht_key = node_data + ix * node_size(ht) + sizeof(uint64_t);
+    r.ht_data = (void*)( node_data + ix * node_size(ht) + sizeof(uint64_t) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
     return r;
 }
 
@@ -219,6 +258,8 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
         header_of(rp)->opts_ = opts;
         header_of(rp)->cursize_ = INITIAL_SIZE;
         header_of(rp)->slots_used_ = 0;
+        header_of(rp)->dirty_slots_ = 0;
+        header_of(rp)->capacity_ = INITIAL_CAPACITY;
     } else if (strcmp(header_of(rp)->magic, "DiskBasedHash11")) {
         if (!strcmp(header_of(rp)->magic, "DiskBasedHash10")) {
             rp->flags_ &= ~HT_FLAG_HASH_2;
@@ -327,7 +368,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     const uint64_t n = primes[i];
     cap = n / 2;
     const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
-    const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht);
+    const size_t total_size = sizeof(HashTableHeader) + n * sizeof_table_elem + cap * node_size(ht) + cap * sizeof_table_elem;
 
     HashTable* temp_ht = (HashTable*)malloc(sizeof(HashTable));
     if (!temp_ht) {
@@ -376,6 +417,8 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     memcpy(header_of(temp_ht), header_of(ht), sizeof(HashTableHeader));
     header_of(temp_ht)->cursize_ = n;
     header_of(temp_ht)->slots_used_ = 0;
+    header_of(temp_ht)->dirty_slots_ = 0;
+    header_of(temp_ht)->capacity_ = cap;
 
     if (!strcmp(header_of(temp_ht)->magic, "DiskBasedHash10")) {
         strcpy(header_of(temp_ht)->magic, "DiskBasedHash11");
@@ -420,7 +463,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
 }
 
 size_t dht_size(const HashTable* ht) {
-    return cheader_of(ht)->slots_used_;
+    return cheader_of(ht)->slots_used_ - cheader_of(ht)->dirty_slots_;
 }
 
 int dht_indexed_lookup (HashTable* ht, size_t index, char** key, void* data, char** err) {
@@ -467,21 +510,30 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
         if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
     }
     uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
+    uint64_t offset = 1;
     while (1) {
         HashTableEntry et = entry_at(ht, h);
         if (entry_empty(et)) break;
         if (!strcmp(et.ht_key, key)) {
             return 0;
         }
+        ++offset;
         ++h;
         if (h == cheader_of(ht)->cursize_) {
             h = 0;
         }
     }
-    set_table_at(ht, h, header_of(ht)->slots_used_ + 1);
-    ++header_of(ht)->slots_used_;
+    if (header_of(ht)->dirty_slots_) {
+        size_t dirty_index = get_dirty_index (ht, header_of (ht)->dirty_slots_ - 1);
+        --header_of(ht)->dirty_slots_;
+        set_table_at(ht, h, dirty_index);
+    } else {
+        set_table_at(ht, h, header_of(ht)->slots_used_ + 1);
+        ++header_of(ht)->slots_used_;
+    }
     HashTableEntry et = entry_at(ht, h);
 
+    *et.offset_ = offset;
     strcpy((char*)et.ht_key, key);
     memcpy(et.ht_data, data, cheader_of(ht)->opts_.object_datalen);
     return 1;
@@ -499,4 +551,82 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
     }
     if (err) { *err = strdup ("Key was not found."); }
     return 0;
+}
+
+static int table_compression(HashTable*, uint64_t, uint64_t, char** err);
+
+int dht_delete(HashTable* ht, const char* key, char** err) {
+    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
+        if (err) { *err = strdup ("Hash table is read-only. Cannot update."); }
+        return -EACCES;
+    }
+    uint64_t i, hash = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
+    HashTableEntry et;
+    for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
+        et = entry_at (ht, hash);
+        if (!et.ht_key) {
+            if (err) { *err = strdup ("Key was not found."); }
+            return 0;
+        }
+        if (!strcmp (et.ht_key, key)) {
+            strcpy((char*)et.ht_key, "");
+            // set the freed slot as dirty
+            uint64_t dirty_index = get_table_at(ht, hash);
+            set_dirty_index (ht, header_of(ht)->dirty_slots_, dirty_index);
+            ++header_of(ht)->dirty_slots_;
+            assert(header_of(ht)->dirty_slots_ <= header_of(ht)->capacity_);
+            // compress the collision list
+            int ret_compression = table_compression(ht, hash, i, err);
+            return ret_compression;
+        }
+        ++hash;
+        if (hash == cheader_of(ht)->cursize_) {
+            hash = 0;
+        }
+    }
+    if (err) { *err = strdup ("dht_delete: the code should never have reached this line. Table load must never reach 100%."); }
+    assert (false);
+    return -ENFILE;
+}
+
+int table_compression(HashTable* ht, uint64_t free_hash, uint64_t it_index, char** err) {
+    uint64_t hash = free_hash, initial_hash = free_hash;
+    uint64_t hash_offset = 1;
+    HashTableEntry et, free_et;
+    for (++it_index; it_index < cheader_of(ht)->cursize_; ++it_index, ++hash_offset) {
+        ++hash;
+        if (hash == cheader_of(ht)->cursize_) {
+            hash = 0;
+        }
+        et = entry_at (ht, hash);
+        if (entry_empty(et)) {
+            if (hash == 0) {
+                hash = cheader_of(ht)->cursize_ - 1;
+            } else {
+                --hash;
+            }
+            set_table_at(ht, hash, 0);
+            return 1;
+        }
+        if (*et.offset_ > hash_offset) {
+            // move current entry
+            free_et = entry_at (ht, free_hash);
+            strncpy((char*)free_et.ht_key, et.ht_key, cheader_of(ht)->opts_.key_maxlen);
+            memcpy(free_et.ht_data, et.ht_data, cheader_of(ht)->opts_.object_datalen);
+            free_et.offset_ = et.offset_ - hash_offset;
+            // mark current slot as free
+            strcpy((char*)et.ht_key, "");
+            et.offset_ = 0;
+            hash_offset = 0;
+            free_hash = hash;
+            // set the freed slot as dirty
+            uint64_t dirty_index = get_table_at(ht, free_hash);
+            set_dirty_index (ht, header_of(ht)->dirty_slots_, dirty_index);
+        }
+    }
+    if (err) {
+        *err = strdup ("table_compression: the code should never have reached this line. Table load must never reach 100%. Hash table was corrupted!");
+    }
+    assert (false);
+    return -ENFILE;
 }
