@@ -27,7 +27,7 @@ typedef struct HashTableHeader {
     size_t slots_used_;
     size_t dirty_slots_;
     size_t capacity_;
-} HashTableHeader;
+} HashTableHeader; // 64 bytes
 
 typedef struct HashTableEntry {
     uint64_t* offset_;
@@ -75,7 +75,7 @@ int is_64bit(const HashTable* ht) {
 
 inline static
 size_t node_size_opts(HashTableOpts opts) {
-    return aligned_size(opts.key_maxlen + 1) + aligned_size(opts.object_datalen);
+    return aligned_size(sizeof(uint64_t)) + aligned_size(opts.key_maxlen + 1) + aligned_size(opts.object_datalen);
 }
 
 inline static
@@ -142,6 +142,12 @@ uint64_t get_dirty_index (HashTable* ht, size_t dirty_slot) {
     return *dirty_slot_ptr;
 }
 
+static
+HashTableEntry entry_by_index(const HashTable*, size_t);
+
+static
+HashTableEntry entry_at(const HashTable*, size_t);
+
 void show_ht(const HashTable* ht) {
     fprintf(stderr, "HT {\n"
                 "\tmagic = \"%s\",\n"
@@ -158,7 +164,13 @@ void show_ht(const HashTable* ht) {
 
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
-        fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, (int)get_table_at(ht, i));
+        int store_index = (int)get_table_at(ht, i);
+        if (store_index > 0) {
+            HashTableEntry et = entry_at(ht, i);
+            fprintf(stderr, "\tTable [ %d ] = %d    [ %s ]\n",(int)i, store_index, et.ht_key);
+        } else {
+            fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, store_index);
+        }
     }
     fprintf(stderr, "}\n");
 }
@@ -178,8 +190,8 @@ HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
     r.offset_ = (uint64_t*)( node_data + ix * node_size(ht) );
-    r.ht_key = node_data + ix * node_size(ht) + sizeof(uint64_t);
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + sizeof(uint64_t) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.ht_key = node_data + ix * node_size(ht) + aligned_size(sizeof(uint64_t));
+    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(sizeof(uint64_t)) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
     return r;
 }
 
@@ -226,7 +238,10 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     dht_file_size(rp->fd_, &rp->datasize_);
     if (rp->datasize_ == 0) {
         needs_init = 1;
-        rp->datasize_ = sizeof(HashTableHeader) + INITIAL_SIZE * sizeof(uint32_t) + INITIAL_CAPACITY * node_size_opts(opts);
+        rp->datasize_ = sizeof(HashTableHeader)
+                + INITIAL_SIZE * sizeof(uint32_t)            // hash table
+                + INITIAL_CAPACITY * node_size_opts(opts)    // store table
+                + INITIAL_CAPACITY * sizeof(uint32_t);       // stack of dirty entries (deleted slots)
         if (!dht_truncate_file(fd, rp->datasize_)) {
             if (err) {
                 *err = malloc(256);

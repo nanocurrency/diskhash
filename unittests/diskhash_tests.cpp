@@ -22,6 +22,8 @@ void diskhash_load_to_memory_works ();
 void diskhash_write_error_on_memory_loaded_db ();
 void diskhash_check_cursor_points_correctly_regardless_position ();
 void diskhash_check_cursor_points_correctly ();
+void diskhash_deletes_correctly ();
+void diskhash_deletes_three_entries_correctly ();
 
 #ifdef __cplusplus
 using namespace std;
@@ -29,6 +31,7 @@ using namespace std;
 
 int main (int argc, char ** argv)
 {
+goto delete_operations;
 	printf ("diskhash_check_cursor_points_correctly ():\n");
 	diskhash_check_cursor_points_correctly ();
 
@@ -82,6 +85,13 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_write_error_on_memory_loaded_db ():\n");
 	diskhash_write_error_on_memory_loaded_db ();
+
+	printf ("diskhash_deletes_correctly ():\n");
+	diskhash_deletes_correctly ();
+
+delete_operations:
+	printf ("diskhash_deletes_three_entries_correctly ():\n");
+	diskhash_deletes_three_entries_correctly ();
 
 	return 0;
 }
@@ -471,6 +481,72 @@ void diskhash_check_cursor_points_correctly_regardless_position ()
 	dht_free (ht);
 }
 
+void diskhash_deletes_correctly ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	int insert_val = 123;
+	char* insert_key = strdup("key1");
+	show_ht(ht);
+	dht_insert (ht, insert_key, &insert_val, NULL);
+	show_ht(ht);
+	int ret_delete = dht_delete (ht, insert_key, &err);
+	assert (ret_delete == 1);
+	show_ht(ht);
+	int* read_val = (int*)dht_lookup (ht, insert_key);
+	assert (read_val == NULL);
+
+	int ret_insert = dht_insert (ht, insert_key, &insert_val, NULL);
+	assert (ret_insert == 1);
+
+	free ((char *)insert_key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_three_entries_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	int insert_val = 123;
+	dht_insert (ht, "key1", &insert_val, NULL);
+	insert_val = 456;
+	dht_insert (ht, "key2", &insert_val, NULL);
+	insert_val = 789;
+	dht_insert (ht, "key3", &insert_val, NULL);
+	show_ht(ht);
+	int ret_delete = dht_delete (ht, "key1", &err);
+	assert (ret_delete == 1);
+	show_ht(ht);
+
+	int* ret_lookup = (int*)dht_lookup (ht, "key1");
+	assert (ret_lookup == NULL);
+	show_ht(ht);
+
+	int* read_val = (int*) dht_lookup(ht, "key2");
+	assert (*read_val == 456);
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
 void diskhash_check_cursor_points_correctly ()
 {
 	const char * db_path = strdup (get_temp_db_path ().c_str ());
@@ -504,3 +580,4 @@ void diskhash_check_cursor_points_correctly ()
 	free ((char *)db_path);
 	dht_free (ht);
 }
+
