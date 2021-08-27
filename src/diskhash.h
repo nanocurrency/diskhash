@@ -122,7 +122,7 @@ void* dht_lookup(const HashTable*, const char* key);
  *         not modified.
  *         -EINVAL : key is too long.
  *         -EACCES : attempted to insert into a read-only table.
- *	       -ENOMEM : dht_reserve failed.
+ *         -ENOMEM : dht_reserve failed.
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
@@ -201,6 +201,14 @@ size_t dht_reserve(HashTable*, size_t capacity, char** err);
  */
 size_t dht_size(const HashTable*);
 
+/**
+ * Returns the table's capacity.
+ *
+ * It means the number of entries that can be stored within the current
+ * reserved space.
+ */
+ size_t dht_capacity(const HashTable*);
+
 /** Lookup by the store table index.
  *
  * As new entries are inserted on the hash table, there is a sequence cursor
@@ -229,7 +237,7 @@ void dht_free(HashTable*);
 /** For debug use only */
 void show_ht(const HashTable*);
 void show_st(const HashTable*);
-
+void show_ds(const HashTable*);
 
 #ifdef __cplusplus
 } /* extern "C" */

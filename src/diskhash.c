@@ -85,7 +85,7 @@ size_t node_size(const HashTable* ht) {
 
 inline static
 int entry_empty(const HashTableEntry et) {
-    return !et.ht_key;
+    return et.ht_key == NULL || !strcmp((char*)et.ht_key, "");
 }
 
 void* hashtable_of(HashTable* ht) {
@@ -149,7 +149,7 @@ static
 HashTableEntry entry_at(const HashTable*, size_t);
 
 void show_ht(const HashTable* ht) {
-    fprintf(stderr, "HT {\n"
+    fprintf(stderr, "Hash Table {\n"
                 "\tmagic = \"%s\",\n"
                 "\tcursize = %d,\n"
                 "\tslots used = %zd\n"
@@ -167,40 +167,52 @@ void show_ht(const HashTable* ht) {
         int store_index = (int)get_table_at(ht, i);
         if (store_index > 0) {
             HashTableEntry et = entry_at(ht, i);
-            fprintf(stderr, "\tTable [ %d ] = %d    [ %s ]\n",(int)i, store_index, et.ht_key);
+            fprintf(stderr, "\t[ %d ] = %d    [ %s ]\n",(int)i, store_index, et.ht_key);
         } else {
-            fprintf(stderr, "\tTable [ %d ] = %d\n",(int)i, store_index);
+            fprintf(stderr, "\t[ %d ] = %d\n",(int)i, store_index);
         }
     }
     fprintf(stderr, "}\n");
 }
 
 void show_st(const HashTable* ht) {
-    fprintf(stderr, "ST {\n"
-                    "\tmagic = \"%s\",\n"
-                    "\tcursize = %d,\n"
+    fprintf(stderr, "Store Table {\n"
                     "\tslots used = %zd\n"
                     "\tdirty slots = %zd\n"
                     "\tcapacity = %zd\n"
                     "\n",
-            cheader_of(ht)->magic,
-            (int)cheader_of(ht)->cursize_,
             cheader_of(ht)->slots_used_,
             cheader_of(ht)->dirty_slots_,
             cheader_of(ht)->capacity_);
 
     uint64_t i;
-    for (i = 0; i < cheader_of(ht)->capacity_; ++i) {
+    for (i = 0; i <= cheader_of(ht)->capacity_; ++i) {
         HashTableEntry et = entry_by_index(ht, i);
         if (!entry_empty(et)) {
-            fprintf(stderr, "\tTable [ %d ] = [ key: %s, offset: %lu ]\n",(int)i, et.ht_key, *et.offset_);
+            fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, *et.offset_);
         } else {
-			if (i == 0) {
-				fprintf(stderr, "\tTable [ %d ] = [ zero ]\n",(int)i);
-			} else {
-				fprintf(stderr, "\tTable [ %d ] = [ offset: %lu ]\n",(int)i, *et.offset_);
-			}
-		}
+            if (i == 0) {
+                fprintf(stderr, "\t[ %d ] = { zero }\n",(int)i);
+            } else {
+                fprintf(stderr, "\t[ %d ] = { offset: %lu }\n",(int)i, *et.offset_);
+            }
+        }
+    }
+    fprintf(stderr, "}\n");
+}
+
+void show_ds(const HashTable* ht) {
+    fprintf(stderr, "DS {\n"
+                    "\tdirty slots = %zd\n"
+                    "\tcapacity = %zd\n"
+                    "\n",
+            cheader_of(ht)->dirty_slots_,
+            cheader_of(ht)->capacity_);
+
+    uint64_t i;
+    for (i = 0; i < cheader_of(ht)->dirty_slots_; ++i) {
+        uint64_t dirty_index = get_dirty_index((HashTable *)ht, i);
+        fprintf(stderr, "\t[ %lu ] = %lu\n", i, dirty_index);
     }
     fprintf(stderr, "}\n");
 }
@@ -407,7 +419,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     if (header_of(ht)->cursize_ / 2 > cap) {
         return header_of(ht)->cursize_ / 2;
     }
-    const uint64_t starting_slots = cheader_of(ht)->slots_used_;
+    const uint64_t starting_slots = dht_size(ht);
     const uint64_t min_slots = cap * 2 + 1;
     uint64_t i = 0;
     while (primes[i] && primes[i] < min_slots) ++i;
@@ -475,7 +487,9 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     for (i = 0; i < header_of(ht)->slots_used_; ++i) {
         set_table_at(ht, 0, i + 1);
         et = entry_at(ht, 0);
-        dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
+        if (!entry_empty(et)) {
+            dht_insert(temp_ht, et.ht_key, et.ht_data, NULL);
+        }
     }
 
     char* temp_fname = strdup(temp_ht->fname_);
@@ -505,11 +519,16 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     free(temp_ht);
 
     assert(starting_slots == cheader_of(ht)->slots_used_);
+    assert(dht_size(ht) == cheader_of(ht)->slots_used_);
     return cap;
 }
 
 size_t dht_size(const HashTable* ht) {
     return cheader_of(ht)->slots_used_ - cheader_of(ht)->dirty_slots_;
+}
+
+size_t dht_capacity(const HashTable* ht) {
+    return cheader_of(ht)->capacity_;
 }
 
 int dht_indexed_lookup (HashTable* ht, size_t index, char** key, void* data, char** err) {
@@ -552,8 +571,8 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
         return -EINVAL;
     }
     /* Max load is 50% */
-    if (cheader_of(ht)->cursize_ / 2 <= cheader_of(ht)->slots_used_) {
-        if (!dht_reserve(ht, cheader_of(ht)->slots_used_ + 1, err)) return -ENOMEM;
+    if (cheader_of(ht)->cursize_ / 2 <= dht_size(ht)) {
+        if (!dht_reserve(ht, dht_size(ht) + 1, err)) return -ENOMEM;
     }
     uint64_t h = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
     uint64_t offset = 1;
@@ -610,7 +629,7 @@ int dht_delete(HashTable* ht, const char* key, char** err) {
     HashTableEntry et;
     for (i = 0; i < cheader_of(ht)->cursize_; ++i) {
         et = entry_at (ht, hash);
-        if (!et.ht_key) {
+        if (entry_empty(et)) {
             if (err) { *err = strdup ("Key was not found."); }
             return 0;
         }
@@ -646,11 +665,7 @@ int table_compression(HashTable* ht, uint64_t free_hash, uint64_t it_index, char
         }
         et = entry_at (ht, hash);
         if (entry_empty(et)) {
-            if (hash == 0) {
-                hash = cheader_of(ht)->cursize_ - 1;
-            } else {
-                --hash;
-            }
+            hash = (hash - hash_offset) % cheader_of(ht)->cursize_;
             set_table_at(ht, hash, 0);
             return 1;
         }
