@@ -30,9 +30,9 @@ typedef struct HashTableHeader {
 } HashTableHeader; // 64 bytes
 
 typedef struct HashTableEntry {
-    uint64_t* offset_;
     const char* ht_key;
     void* ht_data;
+    uint64_t* offset_;
 } HashTableEntry;
 
 static
@@ -175,6 +175,36 @@ void show_ht(const HashTable* ht) {
     fprintf(stderr, "}\n");
 }
 
+void show_st(const HashTable* ht) {
+    fprintf(stderr, "ST {\n"
+                    "\tmagic = \"%s\",\n"
+                    "\tcursize = %d,\n"
+                    "\tslots used = %zd\n"
+                    "\tdirty slots = %zd\n"
+                    "\tcapacity = %zd\n"
+                    "\n",
+            cheader_of(ht)->magic,
+            (int)cheader_of(ht)->cursize_,
+            cheader_of(ht)->slots_used_,
+            cheader_of(ht)->dirty_slots_,
+            cheader_of(ht)->capacity_);
+
+    uint64_t i;
+    for (i = 0; i < cheader_of(ht)->capacity_; ++i) {
+        HashTableEntry et = entry_by_index(ht, i);
+        if (!entry_empty(et)) {
+            fprintf(stderr, "\tTable [ %d ] = [ key: %s, offset: %lu ]\n",(int)i, et.ht_key, *et.offset_);
+        } else {
+			if (i == 0) {
+				fprintf(stderr, "\tTable [ %d ] = [ zero ]\n",(int)i);
+			} else {
+				fprintf(stderr, "\tTable [ %d ] = [ offset: %lu ]\n",(int)i, *et.offset_);
+			}
+		}
+    }
+    fprintf(stderr, "}\n");
+}
+
 static
 HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     HashTableEntry r;
@@ -189,13 +219,14 @@ HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     const char* node_data = (const char*)ht->data_
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_table_elem;
-    r.offset_ = (uint64_t*)( node_data + ix * node_size(ht) );
-    r.ht_key = node_data + ix * node_size(ht) + aligned_size(sizeof(uint64_t));
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(sizeof(uint64_t)) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.ht_key = node_data + ix * node_size(ht);
+    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.offset_ = (uint64_t*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) +
+            aligned_size(cheader_of(ht)->opts_.object_datalen));
     return r;
 }
 
-static
+inline static
 HashTableEntry entry_at(const HashTable* ht, size_t hash) {
     size_t ix = get_table_at(ht, hash);
     return entry_by_index(ht, ix);
@@ -628,10 +659,10 @@ int table_compression(HashTable* ht, uint64_t free_hash, uint64_t it_index, char
             free_et = entry_at (ht, free_hash);
             strncpy((char*)free_et.ht_key, et.ht_key, cheader_of(ht)->opts_.key_maxlen);
             memcpy(free_et.ht_data, et.ht_data, cheader_of(ht)->opts_.object_datalen);
-            free_et.offset_ = et.offset_ - hash_offset;
+            *free_et.offset_ = *et.offset_ - hash_offset;
             // mark current slot as free
             strcpy((char*)et.ht_key, "");
-            et.offset_ = 0;
+            *et.offset_ = 0;
             hash_offset = 0;
             free_hash = hash;
             // set the freed slot as dirty

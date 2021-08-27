@@ -228,6 +228,7 @@ void dht_free(HashTable*);
 
 /** For debug use only */
 void show_ht(const HashTable*);
+void show_st(const HashTable*);
 
 
 #ifdef __cplusplus
