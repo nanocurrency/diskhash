@@ -20,6 +20,8 @@
 #include <sys/mman.h>
 #endif
 
+#include <stdbool.h>
+
 #ifdef _WIN32
 typedef void* dht_file_t;  // HANDLE
 #else
