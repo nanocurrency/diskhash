@@ -10,6 +10,7 @@ void diskhash_db_saved_correctly ();
 void diskhash_db_saved_correctly_after_update ();
 void diskhash_key_maxlen_equals_to_key_size_returns_error ();
 void diskhash_inserts_successfully ();
+void diskhash_inserts_increasing_capacity_works ();
 void diskhash_updates_successfully ();
 void diskhash_lookup_retrieves_null_for_inexistent_key ();
 void diskhash_lookup_retrieves_inserted_value ();
@@ -36,6 +37,29 @@ void diskhash_deletes_first_slot_no_collision_correctly ();
 #ifdef __cplusplus
 using namespace std;
 #endif
+
+typedef struct dictionary {
+	struct dictionary_entry {
+		char key[30];
+		int value;
+	} entries[10];
+	int size = 0;
+	bool (*check_entry)(struct dictionary* dict, const char *k, int v);
+	void (*append_entry)(struct dictionary* dict, const char* key, int value);
+} dumb_dictionary_t;
+bool check_entry_impl(struct dictionary* dict, const char* key, int value) {
+	for(int i = 0; i < dict->size; i++) {
+		if(!strcmp(dict->entries[i].key,key)) {
+			return (dict->entries[i].value == value);
+		}
+	}
+	return false;
+}
+void append_entry_impl(struct dictionary* dict, const char* key, int value) {
+	strcpy(dict->entries[dict->size].key, key);
+	dict->entries[dict->size].value = value;
+	dict->size++;
+}
 
 int main (int argc, char ** argv)
 {
@@ -65,6 +89,9 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_inserts_successfully ():\n");
 	diskhash_inserts_successfully ();
+
+	printf ("diskhash_inserts_increasing_capacity_works ():\n");
+	diskhash_inserts_increasing_capacity_works ();
 
 	printf ("diskhash_updates_successfully ():\n");
 	diskhash_updates_successfully ();
@@ -241,6 +268,58 @@ void diskhash_inserts_successfully ()
 	int insert_ret = dht_insert (ht, key, &insert_val, &err);
 	assert (insert_ret == 1);
 
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_inserts_increasing_capacity_works ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "key1", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key1", insert_val);
+	insert_val = 456;
+	dht_insert (ht, "key2", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key2", insert_val);
+	insert_val = 789;
+	dht_insert (ht, "key0", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key0", insert_val);
+	insert_val = 1;
+	dht_insert (ht, "key4", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key4", insert_val);
+
+	char* read_key = (char*) malloc(opts.key_maxlen);
+	int* read_val;
+
+	strcpy(read_key, "key1");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key2");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key0");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key4");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	free ((char*) read_key);
 	free ((char *)db_path);
 	dht_free (ht);
 }
@@ -494,29 +573,6 @@ void diskhash_write_error_on_memory_loaded_db ()
 
 	free ((char *)db_path);
 	dht_free (ht);
-}
-
-typedef struct dictionary {
-	struct dictionary_entry {
-		char key[30];
-		int value;
-	} entries[10];
-	int size = 0;
-	bool (*check_entry)(struct dictionary* dict, const char *k, int v);
-	void (*append_entry)(struct dictionary* dict, const char* key, int value);
-} dumb_dictionary_t;
-bool check_entry_impl(struct dictionary* dict, const char* key, int value) {
-	for(int i = 0; i < dict->size; i++) {
-		if(!strcmp(dict->entries[i].key,key)) {
-			return (dict->entries[i].value == value);
-		}
-	}
-	return false;
-}
-void append_entry_impl(struct dictionary* dict, const char* key, int value) {
-	strcpy(dict->entries[dict->size].key, key);
-	dict->entries[dict->size].value = value;
-	dict->size++;
 }
 
 // Kept this test because it may be useful for testing with delete feature.
