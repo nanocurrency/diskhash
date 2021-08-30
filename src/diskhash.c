@@ -85,7 +85,7 @@ size_t node_size(const HashTable* ht) {
 
 inline static
 int entry_empty(const HashTableEntry et) {
-    return et.ht_key == NULL || !strcmp((char*)et.ht_key, "");
+	return et.ht_key == NULL || !strcmp((char*)et.ht_key, "");
 }
 
 void* hashtable_of(HashTable* ht) {
@@ -251,6 +251,46 @@ HashTableOpts dht_zero_opts() {
     return r;
 }
 
+int check_ht(HashTable* ht, char** err) {
+    if (ht == NULL) {
+        if (err) { *err = strdup("The informed HashTable is an invalid NULL pointer."); }
+        return -EINVAL;
+    }
+    return 1;
+}
+
+int check_key(const char* key, char** err) {
+    if (key == NULL) {
+        if (err) { *err = strdup("The informed key is an invalid NULL pointer."); }
+        return -EINVAL;
+    }
+    return 1;
+}
+
+int check_data(const void* data, char** err) {
+    if (data == NULL) {
+        if (err) { *err = strdup("The informed data value is an invalid NULL pointer."); }
+        return -EINVAL;
+    }
+    return 1;
+}
+
+int check_ht_writable(HashTable* ht, char** err) {
+    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
+        if (err) { *err = strdup ("Hash table is read-only."); }
+        return -EACCES;
+    }
+    return 1;
+}
+
+int check_key_size(HashTable* ht, const char* key, char** err) {
+    if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
+        if (err) { *err = strdup("Key is too long."); }
+        return -EINVAL;
+    }
+    return 1;
+}
+
 HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err) {
     if (!fpath || !*fpath) return NULL;
     const dht_file_t fd = dht_open_file(fpath, flags, false);
@@ -408,13 +448,10 @@ char* generate_tempname_from(const char* base) {
 }
 
 size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
-    if (!ht) {
-        if (err) { *err = strdup("Invalid null HashTable object."); }
-        return -EINVAL;
-    }
-    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
-        if (err) { *err = strdup("Hash table is read-only. Cannot call dht_reserve."); }
-        return -EACCES;
+    int checks_return;
+    if ((checks_return = check_ht(ht, err)) != 1 ||
+        (checks_return = check_ht_writable(ht, err)) != 1) {
+        return checks_return;
     }
     if (header_of(ht)->cursize_ / 2 > cap) {
         return header_of(ht)->cursize_ / 2;
@@ -463,7 +500,7 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
             const int errorbufsize = 512;
             *err = (char*)malloc(errorbufsize);
             if (*err) {
-                snprintf(*err, errorbufsize, "Could not mmap() new hashtable: %s.\n", strerror(errno));
+                snprintf(*err, errorbufsize, "Could not dht_memory_map_file() new hashtable: %s.\n", strerror(errno));
             }
         }
         dht_close_file(temp_ht->fd_);
@@ -562,13 +599,13 @@ void* dht_lookup(const HashTable* ht, const char* key) {
 }
 
 int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
-    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
-        if (err) { *err = strdup("Hash table is read-only. Cannot insert."); }
-        return -EACCES;
-    }
-    if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
-        if (err) { *err = strdup("Key is too long."); }
-        return -EINVAL;
+    int checks_return;
+    if ((checks_return = check_ht(ht, err)) != 1 ||
+        (checks_return = check_key(key, err)) != 1 ||
+        (checks_return = check_data(data, err)) != 1 ||
+        (checks_return = check_ht_writable(ht, err)) != 1 ||
+        (checks_return = check_key_size(ht, key, err)) != 1) {
+        return checks_return;
     }
     /* Max load is 50% */
     if (cheader_of(ht)->cursize_ / 2 <= dht_size(ht)) {
@@ -605,9 +642,13 @@ int dht_insert(HashTable* ht, const char* key, const void* data, char** err) {
 }
 
 int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
-    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
-        if (err) { *err = strdup ("Hash table is read-only. Cannot update."); }
-        return -EACCES;
+    int checks_return;
+    if ((checks_return = check_ht(ht, err)) != 1 ||
+        (checks_return = check_key(key, err)) != 1 ||
+        (checks_return = check_data(data, err)) != 1 ||
+        (checks_return = check_ht_writable(ht, err)) != 1 ||
+        (checks_return = check_key_size(ht, key, err)) != 1) {
+        return checks_return;
     }
     void * data_ptr = dht_lookup (ht, key);
     if (data_ptr) {
@@ -621,9 +662,12 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
 static int table_compression(HashTable*, uint64_t, uint64_t, char** err);
 
 int dht_delete(HashTable* ht, const char* key, char** err) {
-    if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
-        if (err) { *err = strdup ("Hash table is read-only. Cannot update."); }
-        return -EACCES;
+    int checks_return;
+    if ((checks_return = check_ht(ht, err)) != 1 ||
+        (checks_return = check_key(key, err)) != 1 ||
+        (checks_return = check_ht_writable(ht, err)) != 1 ||
+        (checks_return = check_key_size(ht, key, err)) != 1) {
+        return checks_return;
     }
     uint64_t i, hash = hash_key(key, ht->flags_ & HT_FLAG_HASH_2) % cheader_of(ht)->cursize_;
     HashTableEntry et;
