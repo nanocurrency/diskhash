@@ -32,7 +32,7 @@ typedef struct HashTableHeader {
 typedef struct HashTableEntry {
     const char* ht_key;
     void* ht_data;
-    uint64_t* offset_;
+    uintptr_t* offset_;
 } HashTableEntry;
 
 static
@@ -85,7 +85,7 @@ size_t node_size(const HashTable* ht) {
 
 inline static
 int entry_empty(const HashTableEntry et) {
-	return et.ht_key == NULL || !strcmp((char*)et.ht_key, "");
+    return et.ht_key == NULL || et.offset_ == NULL || *et.offset_ == 0;
 }
 
 void* hashtable_of(HashTable* ht) {
@@ -116,21 +116,21 @@ void set_table_at(HashTable* ht, uint64_t hash, const uint64_t val) {
 }
 
 static
-uint64_t* dirty_at(HashTable* ht, size_t dirty_slot) {
+uintptr_t* dirty_at(HashTable* ht, size_t dirty_slot) {
     const size_t sizeof_table_elem = is_64bit(ht) ? sizeof(uint64_t) : sizeof(uint32_t);
     const char* node_data = (const char*)ht->data_
                                 + sizeof(HashTableHeader)
                                 + cheader_of(ht)->cursize_ * sizeof_table_elem
                                 + cheader_of(ht)->capacity_ * node_size(ht);
 
-    uint64_t* dirty_entry = (size_t*)node_data + dirty_slot * sizeof_table_elem;
+    uintptr_t* dirty_entry = (size_t*)node_data + dirty_slot * sizeof_table_elem;
     return dirty_entry;
 }
 
 static
 void set_dirty_index (HashTable* ht, uint64_t dirty_slot, size_t dirty_index) {
     assert(dirty_slot < cheader_of(ht)->capacity_);
-    uint64_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
+    uintptr_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
     *dirty_slot_ptr = dirty_index;
 }
 
@@ -138,7 +138,7 @@ static
 uint64_t get_dirty_index (HashTable* ht, size_t dirty_slot) {
     assert(dirty_slot < cheader_of(ht)->capacity_);
     assert(dirty_slot < cheader_of(ht)->dirty_slots_);
-    uint64_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
+    uintptr_t* dirty_slot_ptr = dirty_at(ht, dirty_slot);
     return *dirty_slot_ptr;
 }
 
@@ -186,7 +186,7 @@ void show_st(const HashTable* ht) {
             cheader_of(ht)->capacity_);
 
     uint64_t i;
-    for (i = 0; i <= cheader_of(ht)->capacity_; ++i) {
+    for (i = 0; i <= cheader_of(ht)->slots_used_; ++i) {
         HashTableEntry et = entry_by_index(ht, i);
         if (!entry_empty(et)) {
             fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, *et.offset_);
@@ -194,7 +194,7 @@ void show_st(const HashTable* ht) {
             if (i == 0) {
                 fprintf(stderr, "\t[ %d ] = { zero }\n",(int)i);
             } else {
-                fprintf(stderr, "\t[ %d ] = { offset: %lu }\n",(int)i, *et.offset_);
+                fprintf(stderr, "\t[ %d ] = { dirty }\n",(int)i);
             }
         }
     }
@@ -678,15 +678,8 @@ int dht_delete(HashTable* ht, const char* key, char** err) {
             return 0;
         }
         if (!strcmp (et.ht_key, key)) {
-            strcpy((char*)et.ht_key, "");
-            // set the freed slot as dirty
-            uint64_t dirty_index = get_table_at(ht, hash);
-            set_dirty_index (ht, header_of(ht)->dirty_slots_, dirty_index);
-            ++header_of(ht)->dirty_slots_;
-            assert(header_of(ht)->dirty_slots_ <= header_of(ht)->capacity_);
-            // compress the collision list
-            int ret_compression = table_compression(ht, hash, i, err);
-            return ret_compression;
+            // Entry found, now compressing collision list
+            return table_compression(ht, hash, i, err);
         }
         ++hash;
         if (hash == cheader_of(ht)->cursize_) {
@@ -698,35 +691,44 @@ int dht_delete(HashTable* ht, const char* key, char** err) {
     return -ENFILE;
 }
 
-int table_compression(HashTable* ht, uint64_t free_hash, uint64_t it_index, char** err) {
-    uint64_t hash = free_hash, initial_hash = free_hash;
+int table_compression(HashTable* ht, uint64_t hash, uint64_t i, char** err) {
+    uint64_t free_slot = get_table_at(ht, hash);
     uint64_t hash_offset = 1;
     HashTableEntry et, free_et;
-    for (++it_index; it_index < cheader_of(ht)->cursize_; ++it_index, ++hash_offset) {
+    for (++i; i < cheader_of(ht)->cursize_; ++i, ++hash_offset) {
         ++hash;
         if (hash == cheader_of(ht)->cursize_) {
             hash = 0;
         }
         et = entry_at (ht, hash);
         if (entry_empty(et)) {
+            // set the freed slot as dirty
+            uint64_t dirty_index = free_slot;
+            set_dirty_index (ht, header_of(ht)->dirty_slots_, dirty_index);
+            ++header_of(ht)->dirty_slots_;
+            assert(header_of(ht)->dirty_slots_ <= header_of(ht)->capacity_);
+
+            // reset freed hash table entry.
             hash = (hash - hash_offset) % cheader_of(ht)->cursize_;
+
+            et = entry_at(ht, hash);
+            *et.offset_ = 0;
+
             set_table_at(ht, hash, 0);
             return 1;
         }
         if (*et.offset_ > hash_offset) {
             // move current entry
-            free_et = entry_at (ht, free_hash);
+            free_et = entry_by_index(ht, free_slot);
             strncpy((char*)free_et.ht_key, et.ht_key, cheader_of(ht)->opts_.key_maxlen);
             memcpy(free_et.ht_data, et.ht_data, cheader_of(ht)->opts_.object_datalen);
             *free_et.offset_ = *et.offset_ - hash_offset;
+
             // mark current slot as free
-            strcpy((char*)et.ht_key, "");
+            free_slot = get_table_at(ht, hash);
             *et.offset_ = 0;
+
             hash_offset = 0;
-            free_hash = hash;
-            // set the freed slot as dirty
-            uint64_t dirty_index = get_table_at(ht, free_hash);
-            set_dirty_index (ht, header_of(ht)->dirty_slots_, dirty_index);
         }
     }
     if (err) {
