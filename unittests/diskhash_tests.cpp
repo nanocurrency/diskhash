@@ -24,6 +24,9 @@ void diskhash_delete_readonly_returns_error ();
 void diskhash_delete_too_long_key_returns_error ();
 void diskhash_key_maxlen_equals_to_key_size_returns_error ();
 void diskhash_inserts_successfully ();
+void diskhash_inserts_empty_string_works ();
+void diskhash_delete_empty_string_works ();
+void diskhash_update_empty_string_works ();
 void diskhash_inserts_increasing_capacity_works ();
 void diskhash_updates_successfully ();
 void diskhash_lookup_retrieves_null_for_inexistent_key ();
@@ -145,6 +148,15 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_inserts_successfully ():\n");
 	diskhash_inserts_successfully ();
+
+	printf ("diskhash_inserts_empty_string_works ():\n");
+	diskhash_inserts_empty_string_works ();
+
+	printf ("diskhash_delete_empty_string_works ():\n");
+	diskhash_delete_empty_string_works ();
+
+	printf ("diskhash_update_empty_string_works ():\n");
+	diskhash_update_empty_string_works ();
 
 	printf ("diskhash_inserts_increasing_capacity_works ():\n");
 	diskhash_inserts_increasing_capacity_works ();
@@ -597,6 +609,79 @@ void diskhash_inserts_successfully ()
 	int insert_val = 123456;
 	int insert_ret = dht_insert (ht, key, &insert_val, &err);
 	assert (insert_ret == 1);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_inserts_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (*read_val == insert_val);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_delete_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int delete_ret = dht_delete(ht, "", &err);
+	assert (delete_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (read_val == NULL);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_update_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int update_val = 9;
+	int update_ret = dht_update(ht, "", &update_val, &err);
+	assert (update_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (*read_val == update_val);
 
 	free ((char *)db_path);
 	dht_free (ht);
