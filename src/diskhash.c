@@ -112,6 +112,7 @@ int entry_empty(const HashTableEntry et) {
     return et.ht_key == NULL || et.offset_ == NULL || get_offset(et) == 0;
 }
 
+static
 void* hashtable_of(HashTable* ht) {
     return (unsigned char*)ht->data_ + sizeof(HashTableHeader);
 }
@@ -278,6 +279,7 @@ HashTableOpts dht_zero_opts() {
     return r;
 }
 
+static
 int check_ht(HashTable* ht, char** err) {
     if (ht == NULL) {
         if (err) { *err = strdup("The informed HashTable is an invalid NULL pointer."); }
@@ -286,6 +288,7 @@ int check_ht(HashTable* ht, char** err) {
     return 1;
 }
 
+static
 int check_key(const char* key, char** err) {
     if (key == NULL) {
         if (err) { *err = strdup("The informed key is an invalid NULL pointer."); }
@@ -294,6 +297,7 @@ int check_key(const char* key, char** err) {
     return 1;
 }
 
+static
 int check_data(const void* data, char** err) {
     if (data == NULL) {
         if (err) { *err = strdup("The informed data value is an invalid NULL pointer."); }
@@ -302,6 +306,7 @@ int check_data(const void* data, char** err) {
     return 1;
 }
 
+static
 int check_ht_writable(HashTable* ht, char** err) {
     if (!(ht->flags_ & HT_FLAG_CAN_WRITE)) {
         if (err) { *err = strdup ("Hash table is read-only."); }
@@ -310,6 +315,7 @@ int check_ht_writable(HashTable* ht, char** err) {
     return 1;
 }
 
+static
 int check_key_size(HashTable* ht, const char* key, char** err) {
     if (strlen(key) >= header_of(ht)->opts_.key_maxlen) {
         if (err) { *err = strdup("Key is too long."); }
@@ -457,7 +463,6 @@ char random_char(void) {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return available[rand() % (26*2 + 10)];
 }
-
 
 char* generate_tempname_from(const char* base) {
     char* res = (char*)malloc(strlen(base) + 21);
@@ -687,7 +692,8 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
     return 0;
 }
 
-static int table_compression(HashTable*, uint64_t, uint64_t, char** err);
+static
+int table_compression(HashTable*, uint64_t, uint64_t, char** err);
 
 int dht_delete(HashTable* ht, const char* key, char** err) {
     int checks_return;
