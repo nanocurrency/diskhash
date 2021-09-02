@@ -40,10 +40,10 @@ static
 uint64_t hash_key(const char* k, int use_hash_2) {
     /* Taken from http://www.cse.yorku.ca/~oz/hash.html */
     const unsigned char* ku = (const unsigned char*)k;
-    uint64_t hash = 5381;
+    uint64_t hash = 5381u;
     uint64_t next;
     for ( ; *ku; ++ku) {
-        hash *= 33;
+        hash *= 33u;
         next = *ku;
         if (use_hash_2) {
             next = rtable[next];
@@ -55,7 +55,7 @@ uint64_t hash_key(const char* k, int use_hash_2) {
 
 inline static
 size_t aligned_size(size_t s) {
-    size_t s_8bytes = s & ~0x7;
+    size_t s_8bytes = s & ~0x7u;
     return s_8bytes == s ? s : (s_8bytes + 8);
 }
 
