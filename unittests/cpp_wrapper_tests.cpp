@@ -20,6 +20,9 @@ void cpp_wrapper_db_disk_persistence_works ();
 void cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ();
 void cpp_wrapper_move_constructor ();
 void cpp_wrapper_clear_cleans_the_table ();
+void cpp_wrapper_reserve_works_for_increasing_table_allocation ();
+void cpp_wrapper_reserve_just_returns_when_passing_same_capacity ();
+void cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ();
 
 int main (int argc, char ** argv)
 {
@@ -58,6 +61,15 @@ int main (int argc, char ** argv)
 
 	std::cout << "cpp_wrapper_clear_cleans_the_table ():" << std::endl;
 	cpp_wrapper_clear_cleans_the_table ();
+
+	std::cout << "cpp_wrapper_reserve_works_for_increasing_table_allocation ():" << std::endl;
+	cpp_wrapper_reserve_works_for_increasing_table_allocation ();
+
+	std::cout << "cpp_wrapper_reserve_just_returns_when_passing_same_capacity ():" << std::endl;
+	cpp_wrapper_reserve_just_returns_when_passing_same_capacity ();
+
+	std::cout << "cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ():" << std::endl;
+	cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ();
 
 	delete_temp_db_path (get_temp_path ());
 	return 0;
@@ -235,4 +247,35 @@ void cpp_wrapper_clear_cleans_the_table ()
 
 	ht->clear();
 	assert (ht->size () == 0);
+}
+
+void cpp_wrapper_reserve_works_for_increasing_table_allocation ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto new_allocation = ht->capacity() + 1;
+	ht->reserve(new_allocation);
+	assert (ht->capacity() >= new_allocation);
+}
+
+void cpp_wrapper_reserve_just_returns_when_passing_same_capacity ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto same_capacity = ht->capacity();
+	ht->reserve(same_capacity);
+	assert (ht->capacity() == same_capacity);
+}
+
+void cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto current_capacity = ht->capacity();
+	auto lower_capacity = current_capacity - 1;
+	ht->reserve(lower_capacity);
+	assert (ht->capacity() == current_capacity);
 }

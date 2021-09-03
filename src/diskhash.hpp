@@ -117,11 +117,43 @@ public:
     }
 
     /**
+     * Reserve space.
+     *
+     * Pre-allocates space in the hash table.
+     *
+     * This function is useful to avoid data reallocation procedures everytime
+     * the capacity is increased.
+     */
+     void reserve(unsigned long capacity) {
+        char* err = nullptr;
+        if (capacity < size()) {
+            return;
+        }
+        const int reserve_return = dht_reserve(ht_, capacity, &err);
+        if (reserve_return >= 1) {
+            return;
+        }
+        if (!err) { throw std::bad_alloc(); }
+        std::string error = "Error pre-allocating space to capacity='"
+                + std::to_string(capacity)
+                + "': " + std::string(err);
+        std::free(err);
+        throw std::runtime_error(error);
+     }
+
+    /**
      * Returns the table's size.
      */
     unsigned long size() {
         return (unsigned long) dht_size(ht_);
     }
+
+    /**
+     * Returns the current table's capacity.
+     */
+     unsigned long capacity() {
+         return (unsigned long) dht_capacity(ht_);
+     }
 
     /**
      * Closes/frees resources allocated to the current table.

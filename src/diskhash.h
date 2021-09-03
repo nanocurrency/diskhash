@@ -190,9 +190,6 @@ int dht_delete(HashTable* ht, const char* key, char** err);
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
  * (and no error message will be produced).
- *
- * Attempting to call this function on a read-only table will fail (return
- * value: -EACCES).
  */
 size_t dht_reserve(HashTable*, size_t capacity, char** err);
 

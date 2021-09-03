@@ -480,13 +480,12 @@ char* generate_tempname_from(const char* base) {
 }
 
 size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
-    int checks_return;
-    if ((checks_return = check_ht(ht, err)) != 1 ||
-        (checks_return = check_ht_writable(ht, err)) != 1) {
-        return checks_return;
+    if ((check_ht(ht, err)) != 1 ||
+        (check_ht_writable(ht, err)) != 1) {
+        return 0;
     }
-    if (header_of(ht)->cursize_ / 2 > cap) {
-        return header_of(ht)->cursize_ / 2;
+    if (cap <= cheader_of(ht)->capacity_) {
+        return cheader_of(ht)->capacity_;
     }
     const uint64_t starting_slots = dht_size(ht);
     const uint64_t min_slots = cap * 2 + 1;

@@ -36,6 +36,7 @@ void diskhash_reserves_capacity_equal_or_more_than_requested ();
 void diskhash_returns_correct_size ();
 void diskhash_returns_correct_capacity_after_insert ();
 void diskhash_returns_correct_capacity_after_reserve ();
+void diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ();
 void diskhash_load_to_memory_issues_error_for_writable_databases ();
 void diskhash_load_to_memory_loads_on_readonly_db ();
 void diskhash_load_to_memory_works ();
@@ -180,10 +181,13 @@ int main (int argc, char ** argv)
 	diskhash_returns_correct_size ();
 
 	printf ("diskhash_returns_correct_capacity_after_insert():\n");
-	diskhash_returns_correct_capacity_after_insert();
+	diskhash_returns_correct_capacity_after_insert ();
 
 	printf ("diskhash_returns_correct_capacity_after_reserve():\n");
-	diskhash_returns_correct_capacity_after_reserve();
+	diskhash_returns_correct_capacity_after_reserve ();
+
+	printf ("diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ():\n");
+	diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity();
 
 	printf ("diskhash_load_to_memory_issues_error_for_writable_databases ():\n");
 	diskhash_load_to_memory_issues_error_for_writable_databases ();
@@ -900,6 +904,25 @@ void diskhash_returns_correct_capacity_after_reserve ()
 	int ret_reserve = dht_reserve(ht, 5, &err);
 	assert (ret_reserve);
 	assert (dht_capacity(ht) >= 5);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int capacity = dht_capacity(ht);
+	int ret_reserve = dht_reserve(ht, capacity, &err);
+	assert (ret_reserve == capacity);
 
 	free ((char *)db_path);
 	dht_free (ht);
