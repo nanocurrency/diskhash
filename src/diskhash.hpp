@@ -7,6 +7,7 @@
 #include <cinttypes>
 #include <stdexcept>
 #include <type_traits>
+#include <string>
 
 #ifndef _WIN32
 #include <fcntl.h>
@@ -80,6 +81,36 @@ public:
     T* lookup(const char* key) {
         if (!ht_) return nullptr;
         return static_cast<T*>(dht_lookup(ht_, key));
+    }
+
+    /**
+     * Delete an element.
+     *
+     * Returns true when the deletion is done. Returns false when the key is
+     * not found.
+     *
+     * Throws an exception when the informed arguments are invalid or when
+     * the hash table is inconsistent (this behaviour must never happen).
+     */
+    bool remove(const char* key) {
+        if (!ht_) return false;
+        char* err = nullptr;
+        const int ret_delete = dht_delete(ht_, key, &err);
+        if (ret_delete == 1) {
+            std::free(err);
+            return true;
+        }
+        if (ret_delete == 0) {
+            std::free(err);
+            return false;
+        }
+        auto error = std::string(err);
+        if (ret_delete == -EINVAL) {
+            std::free(err);
+            throw std::invalid_argument(error);
+        }
+        std::free(err);
+        throw std::runtime_error(error);
     }
 
     /**

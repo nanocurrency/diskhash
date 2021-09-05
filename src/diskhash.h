@@ -160,6 +160,7 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err);
  *
  * Returns 1 if the value was deleted.
  *         0 if the key is not found in the table.
+ *         -EINVAL : invalid arguments. Check the *err field for details.
  *         -EACCES : attempted to insert into a read-only table.
  *         -ENFILE : indicates that there was an overflow. This result must
  *         never be reached. If so, the table is possibly corrupted.
