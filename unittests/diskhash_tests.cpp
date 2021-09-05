@@ -45,6 +45,7 @@ void diskhash_check_cursor_points_correctly_regardless_position ();
 void diskhash_check_cursor_points_correctly_regardless_position_after_a_delete ();
 void diskhash_check_cursor_points_correctly ();
 void diskhash_deletes_correctly ();
+void diskhath_deleting_in_the_last_ht_position ();
 void diskhash_deletes_three_entries_correctly ();
 void diskhash_deletes_a_collision_correctly ();
 void diskhash_deletes_more_than_one_collision_correctly ();
@@ -203,6 +204,9 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_deletes_correctly ():\n");
 	diskhash_deletes_correctly ();
+
+	printf ("diskhath_deleting_in_the_last_ht_position ():\n");
+	diskhath_deleting_in_the_last_ht_position ();
 
 	printf ("diskhash_deletes_three_entries_correctly ():\n");
 	diskhash_deletes_three_entries_correctly ();
@@ -1119,6 +1123,55 @@ void diskhash_deletes_correctly ()
 	dht_free (ht);
 }
 
+void diskhath_deleting_in_the_last_ht_position ()
+{
+	//	Hash Table {
+	//	magic = "DiskBasedHash11",
+	//	cursize = 7,
+	//	slots used = 1
+	//	dirty slots = 0
+	//	capacity = 3
+	//
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 0
+	//	[ 4 ] = 0
+	//	[ 5 ] = 0
+	//	[ 6 ] = 1    [ y5FHUaBpZINhgvEmf8A ]
+	//}
+	//
+	//Store Table {
+	//	slots used = 1
+	//	dirty slots = 0
+	//	capacity = 3
+	//
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { key: y5FHUaBpZINhgvEmf8A, offset: 1 }
+	//}
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = strdup("y5FHUaBpZINhgvEmf8A");
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, key, &insert_val, NULL);
+
+	int ret_delete = dht_delete (ht, key, &err);
+	assert (ret_delete == 1);
+
+	int* read_val = (int*)dht_lookup (ht, key);
+	assert (read_val == NULL);
+
+	free ((char *)key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
 
 void diskhash_deletes_three_entries_correctly ()
 {
