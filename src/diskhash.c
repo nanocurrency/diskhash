@@ -54,8 +54,19 @@ uint64_t hash_key(const char* k, int use_hash_2) {
 }
 
 inline static
-size_t aligned_size(size_t s) {
-    size_t s_8bytes = s & ~0x7u;
+bool is_64bit(const size_t number_of_elements) {
+    return number_of_elements > (1L << 32);
+}
+
+inline static
+size_t align_complement(size_t number_of_elements) {
+    size_t complement = is_64bit(number_of_elements) ? 0x7u : 0x3u;
+    return complement;
+}
+
+inline static
+size_t aligned_size(size_t s, size_t number_of_elements) {
+    size_t s_8bytes = s & ~align_complement(number_of_elements);
     return s_8bytes == s ? s : (s_8bytes + 8);
 }
 
@@ -70,23 +81,15 @@ const HashTableHeader* cheader_of(const HashTable* ht) {
 }
 
 inline static
-bool is_64bit(const size_t number_of_elements) {
-    return number_of_elements > (1L << 32);
-}
-
-inline static
 size_t sizeof_table_element(const size_t number_of_elements) {
     return is_64bit(number_of_elements) ? sizeof(uint64_t) : sizeof(uint32_t);
 }
 
 inline static
-size_t node_size_opts(HashTableOpts opts) {
-    return  aligned_size(opts.key_maxlen + 1) + aligned_size(opts.object_datalen) + aligned_size(sizeof(uint64_t));
-}
-
-inline static
-size_t node_size(const HashTable* ht) {
-    return node_size_opts(cheader_of(ht)->opts_);
+size_t sizeof_st_element(HashTableOpts opts, const size_t capacity) {
+    return  aligned_size(opts.key_maxlen + 1, capacity)
+            + aligned_size(opts.object_datalen, capacity)
+            + sizeof_table_element(capacity);  // offset
 }
 
 static
@@ -118,7 +121,7 @@ void* hashtable_of(HashTable* ht) {
 }
 
 static
-uint64_t get_table_at(const HashTable* ht, uint64_t hash) {
+uint64_t get_table_at(const HashTable* ht, const uint64_t hash) {
     assert(hash < cheader_of(ht)->cursize_);
     if (is_64bit(cheader_of(ht)->cursize_)) {
         uint64_t* table = (uint64_t*)hashtable_of((HashTable*)ht);
@@ -130,7 +133,7 @@ uint64_t get_table_at(const HashTable* ht, uint64_t hash) {
 }
 
 static
-void set_table_at(HashTable* ht, uint64_t hash, const uint64_t val) {
+void set_table_at(HashTable* ht, const uint64_t hash, const uint64_t val) {
     if (is_64bit(cheader_of(ht)->cursize_)) {
         uint64_t* table = (uint64_t*)hashtable_of(ht);
         table[hash] = val;
@@ -144,30 +147,35 @@ static
 void* dirty_at(HashTable* ht, size_t dirty_slot) {
     const size_t sizeof_ht_element = sizeof_table_element(cheader_of(ht)->cursize_);
     const size_t sizeof_ds_element = sizeof_table_element(cheader_of(ht)->capacity_);
-    const char* node_data = (const char*)ht->data_
-                            + sizeof(HashTableHeader)
-                            + cheader_of(ht)->cursize_ * sizeof_ht_element
-                            + cheader_of(ht)->capacity_ * node_size(ht);
+    const char* ds_data = (const char*)ht->data_
+                          + sizeof(HashTableHeader)
+                          + cheader_of(ht)->cursize_ * sizeof_ht_element
+                          + cheader_of(ht)->capacity_ * sizeof_st_element(cheader_of(ht)->opts_,
+                                                                          cheader_of(ht)->capacity_);
 
-    void* dirty_entry = (size_t*)node_data + dirty_slot * sizeof_ds_element;
+    void* dirty_entry = (void*)ds_data + dirty_slot * sizeof_ds_element;
     return dirty_entry;
 }
 
 static
 void set_dirty_index (HashTable* ht, uint64_t dirty_slot, uint64_t dirty_index) {
     assert(dirty_slot < cheader_of(ht)->capacity_);
-    void* dirty_slot_ptr = dirty_at(ht, dirty_slot);
-    memcpy(dirty_slot_ptr, &dirty_index, sizeof_table_element(cheader_of(ht)->capacity_));
+    if (is_64bit(cheader_of(ht)->capacity_)) {
+        *((uint64_t*)dirty_at(ht, dirty_slot)) = dirty_index;
+    } else {
+        *((uint32_t*)dirty_at(ht, dirty_slot)) = (uint32_t) dirty_index;
+    }
 }
 
 static
 uint64_t get_dirty_index (HashTable* ht, size_t dirty_slot) {
     assert(dirty_slot < cheader_of(ht)->capacity_);
     assert(dirty_slot < cheader_of(ht)->dirty_slots_);
-    void* dirty_slot_ptr = dirty_at(ht, dirty_slot);
-    uint64_t dirty_index;
-    memcpy(&dirty_index, dirty_slot_ptr, sizeof_table_element(cheader_of(ht)->capacity_));
-    return dirty_index;
+    if (is_64bit(cheader_of(ht)->capacity_)) {
+        return *((uint64_t*)dirty_at(ht, dirty_slot));
+    } else {
+        return *((uint32_t*)dirty_at(ht, dirty_slot));
+    }
 }
 
 static
@@ -257,13 +265,13 @@ HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     }
     --ix;
     const size_t sizeof_ht_element = sizeof_table_element(cheader_of(ht)->cursize_);
-    const char* node_data = (const char*)ht->data_
-                            + sizeof(HashTableHeader)
-                            + cheader_of(ht)->cursize_ * sizeof_ht_element;
+    const char* st_data = (const char*)ht->data_
+                          + sizeof(HashTableHeader)
+                          + cheader_of(ht)->cursize_ * sizeof_ht_element;
     char* base_address = 0;
-    r.ht_key = base_address = node_data + ix * node_size(ht);
-    r.ht_data = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
-    r.offset_ = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.object_datalen) );
+    r.ht_key = base_address = (char*)st_data + ix * sizeof_st_element(cheader_of(ht)->opts_, cheader_of(ht)->capacity_);
+    r.ht_data = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.key_maxlen + 1, cheader_of(ht)->capacity_) );
+    r.offset_ = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.object_datalen, cheader_of(ht)->capacity_) );
     return r;
 }
 
@@ -356,9 +364,9 @@ HashTable* dht_open(const char* fpath, HashTableOpts opts, int flags, char** err
     if (rp->datasize_ == 0) {
         needs_init = 1;
         rp->datasize_ = sizeof(HashTableHeader)
-                + INITIAL_HT_SIZE * sizeof_table_element(INITIAL_HT_SIZE)     // hash table
-                + INITIAL_CAPACITY * node_size_opts(opts)                     // store table
-                + INITIAL_CAPACITY * sizeof_table_element(INITIAL_CAPACITY);  // stack of dirty entries (deleted slots)
+                + INITIAL_HT_SIZE * sizeof_table_element(INITIAL_HT_SIZE)        // hash table
+                + INITIAL_CAPACITY * sizeof_st_element(opts, INITIAL_CAPACITY)   // store table
+                + INITIAL_CAPACITY * sizeof_table_element(INITIAL_CAPACITY);     // dirty stack (deleted slots)
         if (!dht_truncate_file(fd, rp->datasize_)) {
             if (err) {
                 *err = malloc(256);
@@ -496,7 +504,10 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     cap = n / 2;
     const size_t sizeof_ht_element = sizeof_table_element(n);        // hash table:  size == n (prime number)
     const size_t sizeof_ds_element = sizeof_table_element(cap);      // dirty stack: size == store capacity
-    const size_t total_size = sizeof(HashTableHeader) + n * sizeof_ht_element + cap * node_size(ht) + cap * sizeof_ds_element;
+    const size_t total_size = sizeof(HashTableHeader)
+            + n * sizeof_ht_element                                                      // hash table elements
+            + cap * sizeof_st_element(cheader_of(ht)->opts_, cheader_of(ht)->capacity_)  // store table elements
+            + cap * sizeof_ds_element;                                                   // dirty stack elements
 
     HashTable* temp_ht = (HashTable*)malloc(sizeof(HashTable));
     if (!temp_ht) {
