@@ -742,7 +742,12 @@ int table_compression(HashTable* ht, uint64_t hash, uint64_t i, char** err) {
             assert(header_of(ht)->dirty_slots_ <= header_of(ht)->capacity_);
 
             // reset freed hash table entry.
-            hash = (hash - hash_offset) % cheader_of(ht)->cursize_;
+            assert (hash_offset < cheader_of(ht)->cursize_);
+            if (hash_offset > hash) {
+                hash = cheader_of(ht)->cursize_ - (hash_offset - hash);
+            } else {
+                hash -= hash_offset;
+            }
 
             et = entry_at(ht, hash);
             set_offset(et, 0);
