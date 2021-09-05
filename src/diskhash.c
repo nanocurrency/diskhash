@@ -142,10 +142,11 @@ void set_table_at(HashTable* ht, uint64_t hash, const uint64_t val) {
 
 static
 void* dirty_at(HashTable* ht, size_t dirty_slot) {
+    const size_t sizeof_ht_element = sizeof_table_element(cheader_of(ht)->cursize_);
     const size_t sizeof_ds_element = sizeof_table_element(cheader_of(ht)->capacity_);
     const char* node_data = (const char*)ht->data_
                             + sizeof(HashTableHeader)
-                            + cheader_of(ht)->cursize_ * sizeof_ds_element
+                            + cheader_of(ht)->cursize_ * sizeof_ht_element
                             + cheader_of(ht)->capacity_ * node_size(ht);
 
     void* dirty_entry = (size_t*)node_data + dirty_slot * sizeof_ds_element;
@@ -259,10 +260,10 @@ HashTableEntry entry_by_index(const HashTable* ht, size_t ix) {
     const char* node_data = (const char*)ht->data_
                             + sizeof(HashTableHeader)
                             + cheader_of(ht)->cursize_ * sizeof_ht_element;
-    r.ht_key = node_data + ix * node_size(ht);
-    r.ht_data = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
-    r.offset_ = (void*)( node_data + ix * node_size(ht) + aligned_size(cheader_of(ht)->opts_.key_maxlen + 1)
-                + aligned_size(cheader_of(ht)->opts_.object_datalen) );
+    char* base_address = 0;
+    r.ht_key = base_address = node_data + ix * node_size(ht);
+    r.ht_data = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.key_maxlen + 1) );
+    r.offset_ = (void*)( base_address += aligned_size(cheader_of(ht)->opts_.object_datalen) );
     return r;
 }
 
