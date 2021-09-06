@@ -88,16 +88,6 @@ int main (int argc, char ** argv)
 	return 0;
 }
 
-template <
-typename T,
-typename = typename std::enable_if<std::is_integral<T>::value, T>::type>
-std::shared_ptr<dht::DiskHash<T>> get_shared_ptr_to_dht_db (int key_size = 32, dht::OpenMode open_mode = dht::DHOpenRW)
-{
-	const auto db_path = get_temp_db_path ();
-	auto dht_db = std::make_shared<dht::DiskHash<T>> (db_path.c_str (), key_size, open_mode);
-	return dht_db;
-}
-
 void cpp_wrapper_slow_test ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());

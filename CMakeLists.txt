@@ -25,6 +25,10 @@ if(DISKHASH_TESTS)
                                    unittests/cpp_wrapper_tests.cpp)
   target_link_libraries(cpp_wrapper_tests diskhash)
 
+  add_executable(cpp_slow_tests unittests/helper_functions.cpp
+          unittests/cpp_slow_tests.cpp)
+  target_link_libraries(cpp_slow_tests diskhash)
+
   add_executable(diskhash_tests unittests/helper_functions.cpp
                                 unittests/diskhash_tests.cpp)
   target_link_libraries(diskhash_tests diskhash)
