@@ -122,7 +122,7 @@ void* dht_lookup(const HashTable*, const char* key);
  *         not modified.
  *         -EINVAL : key is too long.
  *         -EACCES : attempted to insert into a read-only table.
- *	       -ENOMEM : dht_reserve failed.
+ *         -ENOMEM : dht_reserve failed.
  *
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
@@ -151,6 +151,28 @@ int dht_insert(HashTable*, const char* key, const void* data, char** err);
  */
 int dht_update(HashTable* ht, const char* key, const void* data, char** err);
 
+/** Delete a value by key
+ *
+ * The hashtable must be opened in read write mode.
+ *
+ * If the given key is not present in the table, then no action is performed
+ * and 0 is returned.
+ *
+ * Returns 1 if the value was deleted.
+ *         0 if the key is not found in the table.
+ *         -EINVAL : invalid arguments. Check the *err field for details.
+ *         -EACCES : attempted to insert into a read-only table.
+ *         -ENFILE : indicates that there was an overflow. This result must
+ *         never be reached. If so, the table is possibly corrupted.
+ *
+ * The last argument is an error output argument. If it is set to a non-NULL
+ * value, then the memory must be released with free(). Passing NULL is valid
+ * (and no error message will be produced). An error return with *err == NULL
+ * will mean an out-of-memory error (when dht fails to allocate memory, it does
+ * not try to allocate memory for an error message).
+ */
+int dht_delete(HashTable* ht, const char* key, char** err);
+
 /** Preallocate memory for the table.
  *
  * Calling this function if the number of elements is known apriori can improve
@@ -169,9 +191,6 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err);
  * The last argument is an error output argument. If it is set to a non-NULL
  * value, then the memory must be released with free(). Passing NULL is valid
  * (and no error message will be produced).
- *
- * Attempting to call this function on a read-only table will fail (return
- * value: -EACCES).
  */
 size_t dht_reserve(HashTable*, size_t capacity, char** err);
 
@@ -179,6 +198,14 @@ size_t dht_reserve(HashTable*, size_t capacity, char** err);
  * Return the number of elements
  */
 size_t dht_size(const HashTable*);
+
+/**
+ * Returns the table's capacity.
+ *
+ * It means the number of entries that can be stored within the current
+ * reserved space.
+ */
+ size_t dht_capacity(const HashTable*);
 
 /** Lookup by the store table index.
  *
@@ -207,7 +234,8 @@ void dht_free(HashTable*);
 
 /** For debug use only */
 void show_ht(const HashTable*);
-
+void show_st(const HashTable*);
+void show_ds(const HashTable*);
 
 #ifdef __cplusplus
 } /* extern "C" */

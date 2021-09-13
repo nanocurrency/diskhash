@@ -8,24 +8,77 @@ void diskhash_creates_db_file_successfully ();
 void diskhash_requires_o_creat_to_create_new_db ();
 void diskhash_db_saved_correctly ();
 void diskhash_db_saved_correctly_after_update ();
+void diskhash_update_nullptr_ht_returns_error ();
+void diskhash_update_nullptr_key_returns_error ();
+void diskhash_update_nullptr_data_returns_error ();
+void diskhash_update_readonly_returns_error ();
+void diskhash_update_too_long_key_returns_error ();
+void diskhash_insert_nullptr_ht_returns_error ();
+void diskhash_insert_nullptr_key_returns_error ();
+void diskhash_insert_nullptr_data_returns_error ();
+void diskhash_insert_readonly_returns_error ();
+void diskhash_insert_too_long_key_returns_error ();
+void diskhash_delete_nullptr_ht_returns_error ();
+void diskhash_delete_nullptr_key_returns_error ();
+void diskhash_delete_readonly_returns_error ();
+void diskhash_delete_too_long_key_returns_error ();
 void diskhash_key_maxlen_equals_to_key_size_returns_error ();
 void diskhash_inserts_successfully ();
+void diskhash_inserts_empty_string_works ();
+void diskhash_delete_empty_string_works ();
+void diskhash_update_empty_string_works ();
+void diskhash_inserts_increasing_capacity_works ();
 void diskhash_updates_successfully ();
 void diskhash_lookup_retrieves_null_for_inexistent_key ();
 void diskhash_lookup_retrieves_inserted_value ();
 void diskhash_check_capacity ();
 void diskhash_reserves_capacity_equal_or_more_than_requested ();
 void diskhash_returns_correct_size ();
+void diskhash_returns_correct_capacity_after_insert ();
+void diskhash_returns_correct_capacity_after_reserve ();
+void diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ();
 void diskhash_load_to_memory_issues_error_for_writable_databases ();
 void diskhash_load_to_memory_loads_on_readonly_db ();
 void diskhash_load_to_memory_works ();
 void diskhash_write_error_on_memory_loaded_db ();
 void diskhash_check_cursor_points_correctly_regardless_position ();
+void diskhash_check_cursor_points_correctly_regardless_position_after_a_delete ();
 void diskhash_check_cursor_points_correctly ();
+void diskhash_deletes_correctly ();
+void diskhath_deleting_in_the_last_ht_position ();
+void diskhash_deletes_three_entries_correctly ();
+void diskhash_deletes_a_collision_correctly ();
+void diskhash_deletes_more_than_one_collision_correctly ();
+void diskhash_deletes_collision_with_filled_slot_correctly ();
+void diskhash_reserve_is_not_affected_by_deleted_entries ();
+void diskhash_deletes_first_slot_no_collision_correctly ();
 
 #ifdef __cplusplus
 using namespace std;
 #endif
+
+typedef struct dictionary {
+	struct dictionary_entry {
+		char key[30];
+		int value;
+	} entries[10];
+	int size = 0;
+	bool (*check_entry)(struct dictionary* dict, const char *k, int v);
+	void (*append_entry)(struct dictionary* dict, const char* key, int value);
+} dumb_dictionary_t;
+bool check_entry_impl(struct dictionary* dict, const char* key, int value) {
+	for(int i = 0; i < dict->size; i++) {
+		if(!strcmp(dict->entries[i].key,key)) {
+			return (dict->entries[i].value == value);
+		}
+	}
+	return false;
+}
+void append_entry_impl(struct dictionary* dict, const char* key, int value) {
+	strcpy(dict->entries[dict->size].key, key);
+	dict->entries[dict->size].value = value;
+	dict->size++;
+}
 
 int main (int argc, char ** argv)
 {
@@ -34,6 +87,9 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_check_cursor_points_correctly_regardless_position ():\n");
 	diskhash_check_cursor_points_correctly_regardless_position ();
+
+	printf ("diskhash_check_cursor_points_correctly_regardless_position_after_a_delete ():\n");
+	diskhash_check_cursor_points_correctly_regardless_position_after_a_delete ();
 
 	printf ("diskhash_creates_db_file_successfully ():\n");
 	diskhash_creates_db_file_successfully ();
@@ -47,11 +103,65 @@ int main (int argc, char ** argv)
 	printf ("diskhash_db_saved_correctly_after_update ():\n");
 	diskhash_db_saved_correctly_after_update ();
 
+	printf ("diskhash_update_nullptr_ht_returns_error(): \n");
+	diskhash_update_nullptr_ht_returns_error ();
+
+	printf ("diskhash_update_nullptr_key_returns_error ():\n");
+	diskhash_update_nullptr_key_returns_error ();
+
+	printf ("diskhash_update_nullptr_data_returns_error ():\n");
+	diskhash_update_nullptr_data_returns_error ();
+
+	printf ("diskhash_update_readonly_returns_error ():\n");
+	diskhash_update_readonly_returns_error ();
+
+	printf ("diskhash_update_too_long_key_returns_error ():\n");
+	diskhash_update_too_long_key_returns_error ();
+
+	printf ("diskhash_insert_nullptr_ht_returns_error ():\n");
+	diskhash_insert_nullptr_ht_returns_error ();
+
+	printf ("diskhash_insert_nullptr_key_returns_error ():\n");
+	diskhash_insert_nullptr_key_returns_error ();
+
+	printf ("diskhash_insert_nullptr_data_returns_error ():\n");
+	diskhash_insert_nullptr_data_returns_error ();
+
+	printf ("diskhash_insert_readonly_returns_error ():\n");
+	diskhash_insert_readonly_returns_error ();
+
+	printf ("diskhash_insert_too_long_key_returns_error ():\n");
+	diskhash_insert_too_long_key_returns_error ();
+
+	printf ("diskhash_delete_nullptr_ht_returns_error ():\n");
+	diskhash_delete_nullptr_ht_returns_error ();
+
+	printf ("diskhash_delete_nullptr_key_returns_error ():\n");
+	diskhash_delete_nullptr_key_returns_error ();
+
+	printf ("diskhash_delete_readonly_returns_error ():\n");
+	diskhash_delete_readonly_returns_error ();
+
+	printf ("diskhash_delete_too_long_key_returns_error ():\n");
+	diskhash_delete_too_long_key_returns_error ();
+
 	printf ("diskhash_key_maxlen_equals_to_key_size_returns_error ():\n");
 	diskhash_key_maxlen_equals_to_key_size_returns_error ();
 
 	printf ("diskhash_inserts_successfully ():\n");
 	diskhash_inserts_successfully ();
+
+	printf ("diskhash_inserts_empty_string_works ():\n");
+	diskhash_inserts_empty_string_works ();
+
+	printf ("diskhash_delete_empty_string_works ():\n");
+	diskhash_delete_empty_string_works ();
+
+	printf ("diskhash_update_empty_string_works ():\n");
+	diskhash_update_empty_string_works ();
+
+	printf ("diskhash_inserts_increasing_capacity_works ():\n");
+	diskhash_inserts_increasing_capacity_works ();
 
 	printf ("diskhash_updates_successfully ():\n");
 	diskhash_updates_successfully ();
@@ -71,6 +181,15 @@ int main (int argc, char ** argv)
 	printf ("diskhash_returns_correct_size ():\n");
 	diskhash_returns_correct_size ();
 
+	printf ("diskhash_returns_correct_capacity_after_insert():\n");
+	diskhash_returns_correct_capacity_after_insert ();
+
+	printf ("diskhash_returns_correct_capacity_after_reserve():\n");
+	diskhash_returns_correct_capacity_after_reserve ();
+
+	printf ("diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ():\n");
+	diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity();
+
 	printf ("diskhash_load_to_memory_issues_error_for_writable_databases ():\n");
 	diskhash_load_to_memory_issues_error_for_writable_databases ();
 
@@ -82,6 +201,30 @@ int main (int argc, char ** argv)
 
 	printf ("diskhash_write_error_on_memory_loaded_db ():\n");
 	diskhash_write_error_on_memory_loaded_db ();
+
+	printf ("diskhash_deletes_correctly ():\n");
+	diskhash_deletes_correctly ();
+
+	printf ("diskhath_deleting_in_the_last_ht_position ():\n");
+	diskhath_deleting_in_the_last_ht_position ();
+
+	printf ("diskhash_deletes_three_entries_correctly ():\n");
+	diskhash_deletes_three_entries_correctly ();
+
+	printf ("diskhash_deletes_a_collision_correctly():\n");
+	diskhash_deletes_a_collision_correctly();
+
+	printf ("diskhash_deletes_more_than_one_collision_correctly ():\n");
+	diskhash_deletes_more_than_one_collision_correctly ();
+
+	printf ("diskhash_deletes_collision_with_filled_slot_correctly ():\n");
+	diskhash_deletes_collision_with_filled_slot_correctly ();
+
+	printf ("diskhash_reserve_is_not_affected_by_deleted_entries ():\n");
+	diskhash_reserve_is_not_affected_by_deleted_entries ();
+
+	printf ("diskhash_deletes_first_slot_no_collision_correctly ():\n");
+	diskhash_deletes_first_slot_no_collision_correctly ();
 
 	return 0;
 }
@@ -165,6 +308,280 @@ void diskhash_db_saved_correctly_after_update ()
 	dht_free (ht);
 }
 
+void diskhash_update_nullptr_ht_returns_error ()
+{
+	const char * key = "my_key";
+	char* err = NULL;
+
+	int update_val = 3;
+	int ret_update = dht_update(NULL, key, &update_val, &err);
+	assert (ret_update == -EINVAL);
+	assert (!strcmp("The informed HashTable is an invalid NULL pointer.", err));
+
+	free((char*)err);
+}
+
+void diskhash_update_nullptr_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int update_val = 3;
+	int ret_update = dht_update(ht, NULL, &update_val, &err);
+	assert (ret_update == -EINVAL);
+	assert (!strcmp("The informed key is an invalid NULL pointer.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_update_nullptr_data_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int ret_update = dht_update(ht, key, NULL, &err);
+	assert (ret_update == -EINVAL);
+	assert (!strcmp("The informed data value is an invalid NULL pointer.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_update_readonly_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	dht_free (ht);
+
+	ht = dht_open (db_path, opts, O_RDONLY, &err);
+
+	int update_val = 3;
+	int ret_update = dht_update(ht, key, &update_val, &err);
+	assert (ret_update == -EACCES);
+	assert (!strcmp("Hash table is read-only.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_update_too_long_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key);
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int update_val = 3;
+	int ret_update = dht_update(ht, key, &update_val, &err);
+	assert (ret_update == -EINVAL);
+	assert (!strcmp("Key is too long.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+
+void diskhash_insert_nullptr_ht_returns_error ()
+{
+	const char * key = "my_key";
+	char* err = NULL;
+
+	int insert_val = 1;
+	int ret_insert = dht_insert(NULL, key, &insert_val, &err);
+	assert (ret_insert == -EINVAL);
+	assert (!strcmp("The informed HashTable is an invalid NULL pointer.", err));
+
+	free((char*)err);
+}
+
+void diskhash_insert_nullptr_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 2;
+	int ret_insert = dht_insert(ht, NULL, &insert_val, &err);
+	assert (ret_insert == -EINVAL);
+	assert (!strcmp("The informed key is an invalid NULL pointer.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_insert_nullptr_data_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int ret_insert = dht_insert(ht, key, NULL, &err);
+	assert (ret_insert == -EINVAL);
+	assert (!strcmp("The informed data value is an invalid NULL pointer.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_insert_readonly_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	dht_free (ht);
+
+	ht = dht_open (db_path, opts, O_RDONLY, &err);
+
+	int insert_val = 2;
+	int ret_insert = dht_insert(ht, key, &insert_val, &err);
+	assert (ret_insert == -EACCES);
+	assert (!strcmp("Hash table is read-only.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_insert_too_long_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key);
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 2;
+	int ret_insert = dht_insert(ht, key, &insert_val, &err);
+	assert (ret_insert == -EINVAL);
+	assert (!strcmp("Key is too long.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_delete_nullptr_ht_returns_error ()
+{
+	const char * key = "my_key";
+	char* err = NULL;
+
+	int ret_delete = dht_delete(NULL, key, &err);
+	assert (ret_delete == -EINVAL);
+	assert (!strcmp("The informed HashTable is an invalid NULL pointer.", err));
+
+	free((char*)err);
+}
+
+void diskhash_delete_nullptr_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int ret_delete = dht_delete(ht, NULL, &err);
+	assert (ret_delete == -EINVAL);
+	assert (!strcmp("The informed key is an invalid NULL pointer.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_delete_readonly_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	dht_free (ht);
+
+	ht = dht_open (db_path, opts, O_RDONLY, &err);
+
+	int ret_delete = dht_delete(ht, key, &err);
+	assert (ret_delete == -EACCES);
+	assert (!strcmp("Hash table is read-only.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
+void diskhash_delete_too_long_key_returns_error ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key);
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char* err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int ret_delete = dht_delete(ht, key,  &err);
+	assert (ret_delete == -EINVAL);
+	assert (!strcmp("Key is too long.", err));
+
+	free ((char *)db_path);
+	free((char*)err);
+	dht_free (ht);
+}
+
 void diskhash_key_maxlen_equals_to_key_size_returns_error ()
 {
 	const char * db_path = strdup (get_temp_db_path ().c_str ());
@@ -201,6 +618,131 @@ void diskhash_inserts_successfully ()
 	int insert_ret = dht_insert (ht, key, &insert_val, &err);
 	assert (insert_ret == 1);
 
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_inserts_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (*read_val == insert_val);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_delete_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int delete_ret = dht_delete(ht, "", &err);
+	assert (delete_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (read_val == NULL);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_update_empty_string_works ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123456;
+	int insert_ret = dht_insert (ht, "", &insert_val, &err);
+	assert (insert_ret == 1);
+
+	int update_val = 9;
+	int update_ret = dht_update(ht, "", &update_val, &err);
+	assert (update_ret == 1);
+
+	int* read_val = (int*)dht_lookup (ht, "");
+	assert (*read_val == update_val);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_inserts_increasing_capacity_works ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "key1", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key1", insert_val);
+	insert_val = 456;
+	dht_insert (ht, "key2", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key2", insert_val);
+	insert_val = 789;
+	dht_insert (ht, "key0", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key0", insert_val);
+	insert_val = 1;
+	dht_insert (ht, "key4", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key4", insert_val);
+
+	char* read_key = (char*) malloc(opts.key_maxlen);
+	int* read_val;
+
+	strcpy(read_key, "key1");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key2");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key0");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	strcpy(read_key, "key4");
+	read_val = (int*)dht_lookup (ht, read_key);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, *read_val));
+
+	free ((char*) read_key);
 	free ((char *)db_path);
 	dht_free (ht);
 }
@@ -324,6 +866,72 @@ void diskhash_returns_correct_size ()
 	dht_free (ht);
 }
 
+void diskhash_returns_correct_capacity_after_insert ()
+{
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	// Returns correct initial capacity
+	assert (dht_capacity(ht) == 3);
+
+	int insert_val = 123;
+	dht_insert (ht, "key1", &insert_val, NULL);
+	dht_insert (ht, "key2", &insert_val, NULL);
+	dht_insert (ht, "key3", &insert_val, NULL);
+	dht_insert (ht, "key4", &insert_val, NULL);
+
+	assert (dht_capacity(ht) >= 4);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_returns_correct_capacity_after_reserve ()
+{
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int ret_reserve = dht_reserve(ht, 5, &err);
+	assert (ret_reserve);
+	assert (dht_capacity(ht) >= 5);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_reserve_does_not_allocate_less_than_equal_to_same_capacity ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int capacity = dht_capacity(ht);
+	int ret_reserve = dht_reserve(ht, capacity, &err);
+	assert (ret_reserve == capacity);
+
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
 void diskhash_load_to_memory_issues_error_for_writable_databases ()
 {
 	const char * db_path = strdup (get_temp_db_path ().c_str ());
@@ -409,29 +1017,6 @@ void diskhash_write_error_on_memory_loaded_db ()
 	dht_free (ht);
 }
 
-typedef struct dictionary {
-	struct dictionary_entry {
-		char key[30];
-		int value;
-	} entries[10];
-	int size = 0;
-	bool (*check_entry)(struct dictionary* dict, const char *k, int v);
-	void (*append_entry)(struct dictionary* dict, const char* key, int value);
-} dumb_dictionary_t;
-bool check_entry_impl(struct dictionary* dict, const char* key, int value) {
-	for(int i = 0; i < dict->size; i++) {
-		if(!strcmp(dict->entries[i].key,key)) {
-			return (dict->entries[i].value == value);
-		}
-	}
-	return false;
-}
-void append_entry_impl(struct dictionary* dict, const char* key, int value) {
-	strcpy(dict->entries[dict->size].key, key);
-	dict->entries[dict->size].value = value;
-	dict->size++;
-}
-
 // Kept this test because it may be useful for testing with delete feature.
 void diskhash_check_cursor_points_correctly_regardless_position ()
 {
@@ -467,6 +1052,455 @@ void diskhash_check_cursor_points_correctly_regardless_position ()
 	assert (test_dictionary.check_entry(&test_dictionary, read_key, read_val));
 
 	free ((char*) read_key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_check_cursor_points_correctly_regardless_position_after_a_delete ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+	int insert_val = 123;
+	dht_insert (ht, "key1", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key1", insert_val);
+	insert_val = 456;
+	dht_insert (ht, "key2", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key2", insert_val);
+	insert_val = 789;
+	dht_insert (ht, "key0", &insert_val, NULL);
+	test_dictionary.append_entry (&test_dictionary, "key0", insert_val);
+
+	dht_delete(ht, "key0", NULL);
+
+	char* read_key = (char*) malloc(opts.key_maxlen);
+	int read_val;
+	dht_indexed_lookup (ht, 0, &read_key, (void *)&read_val, &err);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, read_val));
+	dht_indexed_lookup (ht, 1, &read_key, (void *)&read_val, &err);
+	assert (test_dictionary.check_entry(&test_dictionary, read_key, read_val));
+
+	free ((char*) read_key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_correctly ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	char* insert_key = strdup("key1");
+	dht_insert (ht, insert_key, &insert_val, NULL);
+
+	int ret_delete = dht_delete (ht, insert_key, &err);
+	assert (ret_delete == 1);
+
+	int* read_val = (int*)dht_lookup (ht, insert_key);
+	assert (read_val == NULL);
+
+	int ret_insert = dht_insert (ht, insert_key, &insert_val, NULL);
+	assert (ret_insert == 1);
+
+	free ((char *)insert_key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhath_deleting_in_the_last_ht_position ()
+{
+	//	Hash Table {
+	//	magic = "DiskBasedHash11",
+	//	cursize = 7,
+	//	slots used = 1
+	//	dirty slots = 0
+	//	capacity = 3
+	//
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 0
+	//	[ 4 ] = 0
+	//	[ 5 ] = 0
+	//	[ 6 ] = 1    [ y5FHUaBpZINhgvEmf8A ]
+	//}
+	//
+	//Store Table {
+	//	slots used = 1
+	//	dirty slots = 0
+	//	capacity = 3
+	//
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { key: y5FHUaBpZINhgvEmf8A, offset: 1 }
+	//}
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = strdup("y5FHUaBpZINhgvEmf8A");
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, key, &insert_val, NULL);
+
+	int ret_delete = dht_delete (ht, key, &err);
+	assert (ret_delete == 1);
+
+	int* read_val = (int*)dht_lookup (ht, key);
+	assert (read_val == NULL);
+
+	free ((char *)key);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_three_entries_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "key", &insert_val, NULL);
+	dht_insert(ht, "b", &insert_val, &err);
+	dht_insert(ht, "x", &insert_val, &err);
+
+//    Hash Table:
+//    [ 0 ] = 3    [ x ]
+//    [ 1 ] = 0
+//    [ 2 ] = 0
+//    [ 3 ] = 1    [ key ]
+//    [ 4 ] = 2    [ b ]
+//    [ 5 ] = 0
+//    [ 6 ] = 0
+//
+//    Store Table:
+//    [ 0 ] = [ zero ]
+//    [ 1 ] = [ key: key, offset: 1 ]
+//    [ 2 ] = [ key: b, offset: 1 ]
+//    [ 3 ] = [ key: x, offset: 1 ]
+
+	dht_delete(ht, "b", &err);
+	int* ret_lookup = (int*)dht_lookup(ht, "b");
+	assert (ret_lookup == NULL);
+
+	dht_delete(ht, "key", &err);
+	ret_lookup = (int*)dht_lookup(ht, "key");
+	assert (ret_lookup == NULL);
+
+	dht_delete(ht, "x", &err);
+	ret_lookup = (int*)dht_lookup(ht, "x");
+	assert (ret_lookup == NULL);
+
+//    Dirty Stack:
+//    [ 0 ] = 2
+//    [ 1 ] = 1
+//    [ 2 ] = 3
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_a_collision_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "ker", &insert_val, NULL);
+	dht_insert (ht, "kex", &insert_val, NULL);
+	dht_insert (ht, "key", &insert_val, NULL);
+
+	// h("ker") == h("key") == 3
+	// h("kex") == 2
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ ker ]
+	//	[ 4 ] = 2    [ kex ]
+	//	[ 5 ] = 3    [ key ]
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = [ zero ]
+	//	[ 1 ] = [ key: ker, offset: 1 ]
+	//	[ 2 ] = [ key: kex, offset: 1 ]
+	//	[ 3 ] = [ key: key, offset: 3 ]
+
+	int ret_delete = dht_delete(ht, "ker", &err);
+	assert (ret_delete == 1);
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ key ]
+	//	[ 4 ] = 2    [ kex ]
+	//	[ 5 ] = 0
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { key: key, offset: 1 }
+	//	[ 2 ] = { key: kex, offset: 1 }
+	//	[ 3 ] = { offset: 0 }
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_more_than_one_collision_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "ker", &insert_val, NULL);
+	dht_insert (ht, "key", &insert_val, NULL);
+	dht_insert (ht, "kez", &insert_val, NULL);
+
+	// h("ker") == h("key") == h("kez")
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ ker ]
+	//	[ 4 ] = 2    [ key ]
+	//	[ 5 ] = 3    [ kez ]
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = [ zero ]
+	//	[ 1 ] = [ key: ker, offset: 1 ]
+	//	[ 2 ] = [ key: key, offset: 2 ]
+	//	[ 3 ] = [ key: kez, offset: 3 ]
+
+	int ret_delete = dht_delete(ht, "ker", &err);
+	assert (ret_delete == 1);
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ key ]
+	//	[ 4 ] = 2    [ kex ]
+	//	[ 5 ] = 0
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { key: key, offset: 1 }
+	//	[ 2 ] = { key: kez, offset: 2 }
+	//	[ 3 ] = { offset: 0 }
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_collision_with_filled_slot_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "key", &insert_val, NULL);
+	dht_insert (ht, "kez", &insert_val, NULL);
+	dht_insert (ht, "kex", &insert_val, NULL);
+
+	// h("key") == h("kez") == 3
+	// h("kex") == 4
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ key ]
+	//	[ 4 ] = 2    [ kez ]
+	//	[ 5 ] = 3    [ kex ]
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = [ zero ]
+	//	[ 1 ] = [ key: ker, offset: 1 ]
+	//	[ 2 ] = [ key: key, offset: 2 ]
+	//	[ 3 ] = [ key: kez, offset: 2 ]
+
+	int ret_delete = dht_delete(ht, "kex", &err);
+	assert (ret_delete == 1);
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 1    [ key ]
+	//	[ 4 ] = 2    [ kez ]
+	//	[ 5 ] = 0
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { key: key, offset: 1 }
+	//	[ 2 ] = { key: kez, offset: 2 }
+	//	[ 3 ] = { offset: 0 }
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_deletes_first_slot_no_collision_correctly ()
+{
+	dumb_dictionary_t test_dictionary = {0};
+	test_dictionary.check_entry = check_entry_impl;
+	test_dictionary.append_entry = append_entry_impl;
+
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "ket", &insert_val, NULL);
+	dht_insert (ht, "key", &insert_val, NULL);
+	dht_insert (ht, "kez", &insert_val, NULL);
+
+	// h("ket") == 2
+	// h("key") == h("kez") == 3
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 1    [ ket ]
+	//	[ 3 ] = 2    [ key ]
+	//	[ 4 ] = 3    [ kez ]
+	//	[ 5 ] = 0
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = [ zero ]
+	//	[ 1 ] = [ key: ket, offset: 1 ]
+	//	[ 2 ] = [ key: key, offset: 1 ]
+	//	[ 3 ] = [ key: kez, offset: 2 ]
+
+	int ret_delete = dht_delete(ht, "ket", &err);
+	assert (ret_delete == 1);
+
+	// Hash Table:
+	//	[ 0 ] = 0
+	//	[ 1 ] = 0
+	//	[ 2 ] = 0
+	//	[ 3 ] = 2    [ key ]
+	//	[ 4 ] = 3    [ kez ]
+	//	[ 5 ] = 0
+	//	[ 6 ] = 0
+
+	// Store Table:
+	//	[ 0 ] = { zero }
+	//	[ 1 ] = { offset: 1 }
+	//	[ 2 ] = { key: key, offset: 1 }
+	//	[ 3 ] = { key: kez, offset: 2 }
+
+	//	DS {
+	//		dirty slots = 1
+	//		capacity = 3
+	//
+	//		[ 0 ] = 1
+	//	}
+
+	free ((char *)err);
+	free ((char *)db_path);
+	dht_free (ht);
+}
+
+void diskhash_reserve_is_not_affected_by_deleted_entries ()
+{
+	const char * db_path = strdup (get_temp_db_path ().c_str ());
+	const char * key = "my_biggest_key";
+	HashTableOpts opts;
+	opts.key_maxlen = strlen (key) + 1;
+	opts.object_datalen = sizeof (int);
+	int flags = O_RDWR | O_CREAT;
+	char * err = NULL;
+	HashTable * ht = dht_open (db_path, opts, flags, &err);
+
+	int insert_val = 123;
+	dht_insert (ht, "KeyA", &insert_val, NULL);
+	dht_insert(ht, "KeyB", &insert_val, &err);
+	dht_delete(ht, "KeyB", &err);
+	assert (dht_size(ht) == 1);
+
+	dht_reserve(ht, 5, &err);
+	assert (dht_size(ht) == 1);
+
+	free ((char *)err);
 	free ((char *)db_path);
 	dht_free (ht);
 }

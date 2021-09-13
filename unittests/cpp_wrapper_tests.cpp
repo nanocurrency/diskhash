@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <cstring>
 
 #include <diskhash.hpp>
 #include "helper_functions.hpp"
@@ -20,6 +21,12 @@ void cpp_wrapper_db_disk_persistence_works ();
 void cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ();
 void cpp_wrapper_move_constructor ();
 void cpp_wrapper_clear_cleans_the_table ();
+void cpp_wrapper_reserve_works_for_increasing_table_allocation ();
+void cpp_wrapper_reserve_just_returns_when_passing_same_capacity ();
+void cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ();
+void cpp_wrapper_remove_feature_works_any_key ();
+void cpp_wrapper_remove_nonexistent_key_returns_false ();
+void cpp_wrapper_remove_with_invalid_key_throws_exception ();
 
 int main (int argc, char ** argv)
 {
@@ -59,18 +66,26 @@ int main (int argc, char ** argv)
 	std::cout << "cpp_wrapper_clear_cleans_the_table ():" << std::endl;
 	cpp_wrapper_clear_cleans_the_table ();
 
+	std::cout << "cpp_wrapper_reserve_works_for_increasing_table_allocation ():" << std::endl;
+	cpp_wrapper_reserve_works_for_increasing_table_allocation ();
+
+	std::cout << "cpp_wrapper_reserve_just_returns_when_passing_same_capacity ():" << std::endl;
+	cpp_wrapper_reserve_just_returns_when_passing_same_capacity ();
+
+	std::cout << "cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ():" << std::endl;
+	cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ();
+
+	std::cout << "cpp_wrapper_remove_feature_works_any_key ():" << std::endl;
+	cpp_wrapper_remove_feature_works_any_key();
+
+	std::cout << "cpp_wrapper_remove_nonexistent_key_returns_false ():" << std::endl;
+	cpp_wrapper_remove_nonexistent_key_returns_false();
+
+	std::cout << "cpp_wrapper_remove_with_invalid_key_throws_exception ():" << std::endl;
+	cpp_wrapper_remove_with_invalid_key_throws_exception ();
+
 	delete_temp_db_path (get_temp_path ());
 	return 0;
-}
-
-template <
-typename T,
-typename = typename std::enable_if<std::is_integral<T>::value, T>::type>
-std::shared_ptr<dht::DiskHash<T>> get_shared_ptr_to_dht_db (int key_size = 32, dht::OpenMode open_mode = dht::DHOpenRW)
-{
-	const auto db_path = get_temp_db_path ();
-	auto dht_db = std::make_shared<dht::DiskHash<T>> (db_path.c_str (), key_size, open_mode);
-	return dht_db;
 }
 
 void cpp_wrapper_slow_test ()
@@ -236,3 +251,75 @@ void cpp_wrapper_clear_cleans_the_table ()
 	ht->clear();
 	assert (ht->size () == 0);
 }
+
+void cpp_wrapper_reserve_works_for_increasing_table_allocation ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto new_allocation = ht->capacity() + 1;
+	ht->reserve(new_allocation);
+	assert (ht->capacity() >= new_allocation);
+}
+
+void cpp_wrapper_reserve_just_returns_when_passing_same_capacity ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto same_capacity = ht->capacity();
+	ht->reserve(same_capacity);
+	assert (ht->capacity() == same_capacity);
+}
+
+void cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto current_capacity = ht->capacity();
+	auto lower_capacity = current_capacity - 1;
+	ht->reserve(lower_capacity);
+	assert (ht->capacity() == current_capacity);
+}
+
+void cpp_wrapper_remove_feature_works_any_key ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	ht->insert (key.c_str (), 1245);
+
+	auto ret_delete = ht->remove(key.c_str());
+	if (!ret_delete) {
+		std::cout << "Failed key: " << key << std::endl;
+	}
+	assert (ret_delete);
+	assert (ht->size() == 0);
+}
+
+void cpp_wrapper_remove_nonexistent_key_returns_false ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	auto ret_delete = ht->remove(key.c_str());
+	assert (!ret_delete);
+}
+
+void cpp_wrapper_remove_with_invalid_key_throws_exception ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	try {
+		ht->remove(nullptr);
+	} catch (const std::invalid_argument &e) {
+		assert (!strcmp("The informed key is an invalid NULL pointer.", e.what()));
+		return;
+	}
+	assert (false);
+}
+

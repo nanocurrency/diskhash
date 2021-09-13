@@ -7,6 +7,7 @@
 #include <cinttypes>
 #include <stdexcept>
 #include <type_traits>
+#include <string>
 
 #ifndef _WIN32
 #include <fcntl.h>
@@ -83,6 +84,36 @@ public:
     }
 
     /**
+     * Delete an element.
+     *
+     * Returns true when the deletion is done. Returns false when the key is
+     * not found.
+     *
+     * Throws an exception when the informed arguments are invalid or when
+     * the hash table is inconsistent (this behaviour must never happen).
+     */
+    bool remove(const char* key) {
+        if (!ht_) return false;
+        char* err = nullptr;
+        const int ret_delete = dht_delete(ht_, key, &err);
+        if (ret_delete == 1) {
+            std::free(err);
+            return true;
+        }
+        if (ret_delete == 0) {
+            std::free(err);
+            return false;
+        }
+        auto error = std::string(err);
+        if (ret_delete == -EINVAL) {
+            std::free(err);
+            throw std::invalid_argument(error);
+        }
+        std::free(err);
+        throw std::runtime_error(error);
+    }
+
+    /**
      * Insert an element
      *
      * Returns true if element was inserted (else false and nothing is
@@ -100,11 +131,60 @@ public:
     }
 
     /**
+     * Insert an element
+     *
+     * Returns true if element was inserted (else false and nothing is
+     * modified).
+     */
+    bool insert(const char* key, const void* val) {
+        char* err = nullptr;
+        const int icode = dht_insert(ht_, key, val, &err);
+        if (icode <= 0) return false;
+        if (icode == 1) return true;
+        if (!err) { throw std::bad_alloc(); }
+        std::string error = "Error inserting key '" + std::string(key) + "': " + std::string(err);
+        std::free(err);
+        throw std::runtime_error(error);
+    }
+
+    /**
+     * Reserve space.
+     *
+     * Pre-allocates space in the hash table.
+     *
+     * This function is useful to avoid data reallocation procedures everytime
+     * the capacity is increased.
+     */
+     void reserve(unsigned long capacity) {
+        char* err = nullptr;
+        if (capacity < size()) {
+            return;
+        }
+        const int reserve_return = dht_reserve(ht_, capacity, &err);
+        if (reserve_return >= 1) {
+            return;
+        }
+        if (!err) { throw std::bad_alloc(); }
+        std::string error = "Error pre-allocating space to capacity='"
+                + std::to_string(capacity)
+                + "': " + std::string(err);
+        std::free(err);
+        throw std::runtime_error(error);
+     }
+
+    /**
      * Returns the table's size.
      */
     unsigned long size() {
         return (unsigned long) dht_size(ht_);
     }
+
+    /**
+     * Returns the current table's capacity.
+     */
+     unsigned long capacity() {
+         return (unsigned long) dht_capacity(ht_);
+     }
 
     /**
      * Closes/frees resources allocated to the current table.

@@ -25,6 +25,10 @@ if(DISKHASH_TESTS)
                                    unittests/cpp_wrapper_tests.cpp)
   target_link_libraries(cpp_wrapper_tests diskhash)
 
+  add_executable(cpp_slow_tests unittests/helper_functions.cpp
+          unittests/cpp_slow_tests.cpp)
+  target_link_libraries(cpp_slow_tests diskhash)
+
   add_executable(diskhash_tests unittests/helper_functions.cpp
                                 unittests/diskhash_tests.cpp)
   target_link_libraries(diskhash_tests diskhash)
@@ -32,6 +36,10 @@ if(DISKHASH_TESTS)
   add_executable(os_wrappers_tests unittests/helper_functions.cpp
                                    unittests/os_wrappers_tests.cpp)
   target_link_libraries(os_wrappers_tests diskhash)
+
+  add_executable(disktest src/disktest.c)
+
+  target_link_libraries(disktest diskhash)
 endif()
 
 if(NOT MSVC)
