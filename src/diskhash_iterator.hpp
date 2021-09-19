@@ -8,7 +8,6 @@
 #include <utility>
 #include <algorithm>
 #include <memory>
-#include <iostream>
 
 namespace dht {
 
