@@ -612,14 +612,6 @@ size_t dht_capacity(const HashTable* ht) {
     return cheader_of(ht)->capacity_;
 }
 
-size_t dht_dirty_slots(const HashTable *ht) {
-    return cheader_of(ht)->dirty_slots_;
-}
-
-size_t dht_slots_used(const HashTable *ht) {
-    return cheader_of(ht)->slots_used_;
-}
-
 int dht_indexed_lookup (HashTable* ht, size_t index, char** key, void* data, char** err) {
     if (index >= cheader_of(ht)->slots_used_) {
         if (err) { *err = strdup("The index is out-of-range."); }
