@@ -699,7 +699,6 @@ int dht_update(HashTable* ht, const char* key, const void* data, char** err) {
         memcpy (data_ptr, data, header_of (ht)->opts_.object_datalen);
         return 1;
     }
-    if (err) { *err = strdup ("Key was not found."); }
     return 0;
 }
 

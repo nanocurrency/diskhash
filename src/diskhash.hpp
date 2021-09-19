@@ -124,8 +124,7 @@ public:
         const int icode = dht_insert(ht_, key, &val, &err);
         if (icode <= 0) return false;
         if (icode == 1) return true;
-        if (!err) { throw std::bad_alloc(); }
-        std::string error = "Error inserting key '" + std::string(key) + "': " + std::string(err);
+        std::string error ("Error: " + std::string(err));
         std::free(err);
         throw std::runtime_error(error);
     }
@@ -141,8 +140,23 @@ public:
         const int icode = dht_insert(ht_, key, val, &err);
         if (icode <= 0) return false;
         if (icode == 1) return true;
-        if (!err) { throw std::bad_alloc(); }
-        std::string error = "Error inserting key '" + std::string(key) + "': " + std::string(err);
+        std::string error ("Error: " + std::string(err));
+        std::free(err);
+        throw std::runtime_error(error);
+    }
+
+    /**
+     * Update an element
+     *
+     * Returns true if the element was updated (else false and nothing
+     * is modified).
+     */
+    bool update(const char* key, const T& val) {
+        char* err = nullptr;
+        const int icode = dht_update(ht_, key, &val, &err);
+        if (icode == 0) return false;
+        if (icode == 1) return true;
+        auto error ("Error: " + std::string(err));
         std::free(err);
         throw std::runtime_error(error);
     }

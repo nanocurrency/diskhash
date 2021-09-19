@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <cstring>
+#include <cstdint>
 
 #include <diskhash.hpp>
 #include "helper_functions.hpp"
@@ -12,10 +13,15 @@
 void cpp_wrapper_slow_test ();
 void cpp_wrapper_inserting_repeated_key_returns_false ();
 void cpp_wrapper_successful_insert ();
+void cpp_wrapper_successful_update ();
+void cpp_wrapper_successful_insert_with_struct ();
+void cpp_wrapper_successful_update_with_struct ();
+void cpp_wrapper_update_with_struct_nonexistent_key_returns_false ();
+void cpp_wrapper_update_with_struct_null_key_throws_exception ();
 void cpp_wrapper_filled_key_lookup_returns_value ();
 void cpp_wrapper_empty_key_lookup_returns_null ();
 void cpp_wrapper_is_member_with_existing_key_returns_true ();
-void cpp_wrapper_is_member_with_unexisting_key_returns_false ();
+void cpp_wrapper_is_member_with_nonexistent_key_returns_false ();
 void cpp_wrapper_db_creates_ok_with_DHOpenRW ();
 void cpp_wrapper_db_disk_persistence_works ();
 void cpp_wrapper_db_is_not_created_with_DHOpenRWNoCreate_and_returns_exception ();
@@ -39,6 +45,21 @@ int main (int argc, char ** argv)
 	std::cout << "cpp_wrapper_successful_insert ():" << std::endl;
 	cpp_wrapper_successful_insert ();
 
+	std::cout << "cpp_wrapper_successful_update ():" << std::endl;
+	cpp_wrapper_successful_update ();
+
+	std::cout << "cpp_wrapper_successful_insert_with_struct ():" << std::endl;
+	cpp_wrapper_successful_insert_with_struct ();
+
+	std::cout << "cpp_wrapper_successful_update_with_struct ():" << std::endl;
+	cpp_wrapper_successful_update_with_struct ();
+
+	std::cout << "cpp_wrapper_update_with_struct_nonexistent_key_returns_false ():" << std::endl;
+	cpp_wrapper_update_with_struct_nonexistent_key_returns_false ();
+
+	std::cout << "cpp_wrapper_update_with_struct_null_key_throws_exception ():" << std::endl;
+	cpp_wrapper_update_with_struct_null_key_throws_exception ();
+
 	std::cout << "cpp_wrapper_filled_key_lookup_returns_value ():" << std::endl;
 	cpp_wrapper_filled_key_lookup_returns_value ();
 
@@ -48,8 +69,8 @@ int main (int argc, char ** argv)
 	std::cout << "cpp_wrapper_is_member_with_existing_key_returns_true ():" << std::endl;
 	cpp_wrapper_is_member_with_existing_key_returns_true ();
 
-	std::cout << "cpp_wrapper_is_member_with_unexisting_key_returns_false ():" << std::endl;
-	cpp_wrapper_is_member_with_unexisting_key_returns_false ();
+	std::cout << "cpp_wrapper_is_member_with_nonexistent_key_returns_false ():" << std::endl;
+	cpp_wrapper_is_member_with_nonexistent_key_returns_false();
 
 	std::cout << "cpp_wrapper_db_creates_ok_with_DHOpenRW ():" << std::endl;
 	cpp_wrapper_db_creates_ok_with_DHOpenRW ();
@@ -122,6 +143,115 @@ void cpp_wrapper_successful_insert ()
 	assert (status);
 }
 
+void cpp_wrapper_successful_update ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	ht->insert (key.c_str (), 123);
+
+	auto status (ht->update (key.c_str(), 456));
+	assert (status);
+
+	int* read_val;
+	read_val = (int*) ht->lookup(key.c_str());
+	assert (*read_val == 456);
+}
+
+template <typename DATA_TYPE, size_t DATA_SIZE>
+struct DHT_val
+{
+	using data_type = DATA_TYPE;
+	constexpr size_t data_size ()
+	{
+		return DATA_SIZE;
+	}
+	DHT_val () = default;
+	DHT_val (DHT_val const &) = default;
+	DHT_val (DATA_TYPE * mv_data_a)
+	{
+		assert (mv_data_a != nullptr);
+		std::memcpy (mv_data, mv_data_a, data_size () * sizeof (data_type));
+	}
+	DATA_TYPE mv_data[DATA_SIZE];
+	bool operator== (DHT_val const & other_val)
+	{
+		auto equal (!std::memcmp(mv_data, other_val.mv_data, data_size() * sizeof (data_type)));
+		return equal;
+	}
+};
+constexpr size_t structured_data_size = 256;
+using structured_data_t = DHT_val<uint8_t, structured_data_size>;
+
+void cpp_wrapper_successful_insert_with_struct ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<structured_data_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	std::string random_data = random_string (structured_data_size + 1);
+	structured_data_t dht_val((structured_data_t::data_type *) random_data.c_str ());
+
+	auto status (ht->insert (key.c_str (), dht_val));
+	assert (status);
+
+	structured_data_t * read_val;
+	read_val = (structured_data_t *) ht->lookup(key.c_str());
+	assert (*read_val == dht_val);
+}
+
+void cpp_wrapper_successful_update_with_struct ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<structured_data_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	auto random_data (random_string (structured_data_size + 1));
+	structured_data_t dht_val((structured_data_t::data_type *)random_data.c_str());
+	ht->insert (key.c_str (), dht_val);
+
+	random_data = random_string (structured_data_size + 1);
+	structured_data_t another_dht_val((structured_data_t::data_type *)random_data.c_str());
+	auto status (ht->update (key.c_str(), another_dht_val));
+	assert (status);
+
+	structured_data_t * read_val;
+	read_val = (structured_data_t *) ht->lookup(key.c_str());
+	assert (*read_val == another_dht_val);
+}
+
+void cpp_wrapper_update_with_struct_nonexistent_key_returns_false ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<structured_data_t> (key_maxlen));
+
+	auto key (random_string (key_maxlen));
+	auto random_data (random_string (structured_data_size + 1));
+
+	structured_data_t dht_val((structured_data_t::data_type *)random_data.c_str());
+	auto status (ht->update (key.c_str(), dht_val));
+	assert (!status);
+}
+
+void cpp_wrapper_update_with_struct_null_key_throws_exception ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<structured_data_t> (key_maxlen));
+
+	auto random_data (random_string (structured_data_size + 1));
+
+	structured_data_t dht_val((structured_data_t::data_type *)random_data.c_str());
+	try {
+		ht->update (nullptr, dht_val);
+	} catch (std::runtime_error &e) {
+		auto error_msg (std::string (e.what ()));
+		assert (error_msg.compare ("Error: The informed key is an invalid NULL pointer.") == 0);
+		return;
+	}
+	assert (false);
+}
+
 void cpp_wrapper_inserting_repeated_key_returns_false ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
@@ -168,7 +298,7 @@ void cpp_wrapper_is_member_with_existing_key_returns_true ()
 	assert (found);
 }
 
-void cpp_wrapper_is_member_with_unexisting_key_returns_false ()
+void cpp_wrapper_is_member_with_nonexistent_key_returns_false ()
 {
 	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
 	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));

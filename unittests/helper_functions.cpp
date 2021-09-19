@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <filesystem>
 #include <string>
+#include <cassert>
+#include <random>
 
 #include "helper_functions.hpp"
 
@@ -62,7 +64,10 @@ void delete_temp_db_path (std::filesystem::path temp_path)
 
 std::string random_string (size_t size)
 {
-	std::string str ("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+	std::string str ("");
+	do {
+		str += std::string("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+	} while (str.size() < size);
 	std::random_device rd;
 	std::mt19937 generator (rd ());
 	std::shuffle (str.begin (), str.end (), generator);

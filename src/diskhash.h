@@ -141,6 +141,7 @@ int dht_insert(HashTable*, const char* key, const void* data, char** err);
  *
  * Returns 1 if the value was updated.
  *         0 if the key is not found in the table.
+ *         -EINVAL : there is an invalid argument.
  *         -EACCES : attempted to insert into a read-only table.
  *
  * The last argument is an error output argument. If it is set to a non-NULL
