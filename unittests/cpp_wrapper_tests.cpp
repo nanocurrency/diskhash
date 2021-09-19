@@ -479,8 +479,8 @@ void cpp_wrappper_iterator_different_than_operator_works ()
 	auto key1 (random_string (key_maxlen));
 	ht->insert (key1.c_str (), 12);
 
-	auto it = ht->begin();
-	auto end_it = ht->end();
+	auto it (ht->begin());
+	auto end_it (ht->end());
 	assert (it != end_it);
 }
 
@@ -505,7 +505,7 @@ void cpp_wrappper_iterator_increment_operator_works ()
 	auto key1 (random_string (key_maxlen));
 	ht->insert (key1.c_str (), 12);
 
-	auto it (ht->begin());
+	auto it = ht->begin();
 	auto key (it->first);
 	++it;
 	assert (it == ht->end());

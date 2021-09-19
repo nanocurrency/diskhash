@@ -223,11 +223,11 @@ public:
 
     struct iterator;
 
-    const iterator begin() {
+    iterator begin() {
         return iterator(0, *this);
     }
 
-    const iterator end() {
+    iterator end() {
         return iterator(used_slots(), *this);
     }
 
