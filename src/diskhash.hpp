@@ -5,6 +5,7 @@
 #include "os_wrappers.h"
 
 #include <cinttypes>
+#include <cassert>
 #include <stdexcept>
 #include <type_traits>
 #include <string>
@@ -187,6 +188,13 @@ public:
      }
 
     /**
+     * Returns the number of soft-deleted slots.
+     */
+    unsigned long dirty_slots() {
+         return (unsigned long) dht_dirty_slots(ht_);
+     }
+
+    /**
      * Closes/frees resources allocated to the current table.
      * Deletes the table file on the disk and instantiates a clean table.
      */
@@ -198,7 +206,25 @@ public:
 
     DiskHash(const DiskHash&) = delete;
     DiskHash& operator=(const DiskHash&) = delete;
+
+    struct iterator;
+
+    const iterator begin() {
+        return iterator(0, *this);
+    }
+
+    const iterator end() {
+        return iterator(used_slots(), *this);
+    }
+
 private:
+    /**
+     * Returns the number of used slots.
+     */
+    unsigned long used_slots() {
+        return (unsigned long) dht_slots_used(ht_);
+    }
+
     HashTable* ht_;
 };
 

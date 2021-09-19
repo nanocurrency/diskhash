@@ -207,6 +207,21 @@ size_t dht_size(const HashTable*);
  */
  size_t dht_capacity(const HashTable*);
 
+/** Number of dirty slots.
+ *
+ * Returns the number of dirty slots (soft-deleted slots that were not filled
+ * again).
+ */
+size_t dht_dirty_slots (const HashTable* ht);
+
+/** Number of used slots.
+ *
+ * Returns the number of slots that have already been touched. The number is
+ * equal the number of dirty_slots + the number of valid elements (table's
+ * size).
+ */
+size_t dht_slots_used (const HashTable* ht);
+
 /** Lookup by the store table index.
  *
  * As new entries are inserted on the hash table, there is a sequence cursor

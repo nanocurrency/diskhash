@@ -1,13 +1,15 @@
+#include <diskhash.hpp>
+#include <diskhash_iterator.hpp>
+#include <helper_functions.hpp>
+
 #include <cassert>
 #include <iostream>
 #include <limits>
 #include <list>
+#include <unordered_map>
 #include <memory>
 #include <string>
 #include <cstring>
-
-#include <diskhash.hpp>
-#include "helper_functions.hpp"
 
 void cpp_wrapper_slow_test ();
 void cpp_wrapper_inserting_repeated_key_returns_false ();
@@ -27,6 +29,10 @@ void cpp_wrapper_reserve_just_returns_when_passing_lower_capacity ();
 void cpp_wrapper_remove_feature_works_any_key ();
 void cpp_wrapper_remove_nonexistent_key_returns_false ();
 void cpp_wrapper_remove_with_invalid_key_throws_exception ();
+void cpp_wrappper_iterator_begin_ok ();
+void cpp_wrappper_iterator_different_than_operator_works ();
+void cpp_wrappper_iterator_equals_to_operator_works ();
+void cpp_wrappper_iterator_increment_operator_works ();
 
 int main (int argc, char ** argv)
 {
@@ -83,6 +89,18 @@ int main (int argc, char ** argv)
 
 	std::cout << "cpp_wrapper_remove_with_invalid_key_throws_exception ():" << std::endl;
 	cpp_wrapper_remove_with_invalid_key_throws_exception ();
+
+	std::cout << "cpp_wrappper_iterator_different_than_operator_works ():" << std::endl;
+	cpp_wrappper_iterator_different_than_operator_works ();
+
+	std::cout << "cpp_wrappper_iterator_equals_to_operator_works ():" << std::endl;
+	cpp_wrappper_iterator_equals_to_operator_works ();
+
+	std::cout << "cpp_wrappper_iterator_increment_operator_works ():" << std::endl;
+	cpp_wrappper_iterator_increment_operator_works ();
+
+	std::cout << "cpp_wrappper_iterator_begin_ok ():" << std::endl;
+	cpp_wrappper_iterator_begin_ok ();
 
 	delete_temp_db_path (get_temp_path ());
 	return 0;
@@ -323,3 +341,64 @@ void cpp_wrapper_remove_with_invalid_key_throws_exception ()
 	assert (false);
 }
 
+void cpp_wrappper_iterator_different_than_operator_works ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key1 (random_string (key_maxlen));
+	ht->insert (key1.c_str (), 12);
+
+	auto it = ht->begin();
+	auto end_it = ht->end();
+	assert (it != end_it);
+}
+
+void cpp_wrappper_iterator_equals_to_operator_works ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key1 (random_string (key_maxlen));
+	ht->insert (key1.c_str (), 12);
+
+	auto it1 (ht->begin());
+	auto it2 (ht->begin());
+	assert (it1 == it2);
+}
+
+void cpp_wrappper_iterator_increment_operator_works ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key1 (random_string (key_maxlen));
+	ht->insert (key1.c_str (), 12);
+
+	auto it (ht->begin());
+	auto key (it->first);
+	++it;
+	assert (it == ht->end());
+}
+
+void cpp_wrappper_iterator_begin_ok ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	std::unordered_map<std::string, int> check_map;
+	auto key1 (random_string (key_maxlen));
+	auto key2 (random_string (key_maxlen));
+	ht->insert (key1.c_str (), 12);
+	check_map.emplace(key1, 12);
+	ht->insert (key2.c_str (), 34);
+	check_map.emplace(key2, 34);
+
+	auto number_of_elements (ht->size());
+	auto it = ht->begin();
+	auto end_it = ht->end();
+	auto counter(0u);
+
+	for (; it != end_it; ++it, ++counter);
+	assert (number_of_elements == counter);
+}
