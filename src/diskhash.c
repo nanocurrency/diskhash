@@ -225,7 +225,7 @@ void show_st(const HashTable* ht) {
     for (i = 0; i <= cheader_of(ht)->slots_used_; ++i) {
         HashTableEntry et = entry_by_index(ht, i);
         if (!entry_empty(et)) {
-            fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, get_offset(et));
+            fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, (long unsigned)get_offset(et));
         } else {
             if (i == 0) {
                 fprintf(stderr, "\t[ %d ] = { zero }\n",(int)i);
@@ -248,7 +248,7 @@ void show_ds(const HashTable* ht) {
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->dirty_slots_; ++i) {
         uint64_t dirty_index = get_dirty_index((HashTable *)ht, i);
-        fprintf(stderr, "\t[ %lu ] = %lu\n", i, dirty_index);
+        fprintf(stderr, "\t[ %lu ] = %lu\n", (long unsigned)i, (long unsigned)dirty_index);
     }
     fprintf(stderr, "}\n");
 }
