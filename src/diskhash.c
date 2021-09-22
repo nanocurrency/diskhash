@@ -462,7 +462,6 @@ void dht_free(HashTable* ht) {
         assert(success);
     }
     success = dht_file_sync(ht->fd_);
-    assert((ht->flags_ & HT_FLAG_CAN_WRITE) == success); // Sync success is only applicable when the file is writable.
     success = dht_close_file(ht->fd_);
     assert(success);
     free((char*)ht->fname_);
