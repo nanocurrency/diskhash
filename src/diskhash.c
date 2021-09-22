@@ -153,7 +153,7 @@ void* dirty_at(HashTable* ht, size_t dirty_slot) {
                           + cheader_of(ht)->capacity_ * sizeof_st_element(cheader_of(ht)->opts_,
                                                                           cheader_of(ht)->capacity_);
 
-    void* dirty_entry = (void*)ds_data + dirty_slot * sizeof_ds_element;
+    void* dirty_entry = (void*)( ds_data + dirty_slot * sizeof_ds_element );
     return dirty_entry;
 }
 
@@ -225,7 +225,7 @@ void show_st(const HashTable* ht) {
     for (i = 0; i <= cheader_of(ht)->slots_used_; ++i) {
         HashTableEntry et = entry_by_index(ht, i);
         if (!entry_empty(et)) {
-            fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, get_offset(et));
+            fprintf(stderr, "\t[ %d ] = { key: %s, offset: %lu }\n",(int)i, et.ht_key, (unsigned long)get_offset(et));
         } else {
             if (i == 0) {
                 fprintf(stderr, "\t[ %d ] = { zero }\n",(int)i);
@@ -248,7 +248,7 @@ void show_ds(const HashTable* ht) {
     uint64_t i;
     for (i = 0; i < cheader_of(ht)->dirty_slots_; ++i) {
         uint64_t dirty_index = get_dirty_index((HashTable *)ht, i);
-        fprintf(stderr, "\t[ %lu ] = %lu\n", i, dirty_index);
+        fprintf(stderr, "\t[ %lu ] = %lu\n", (unsigned long)i, (unsigned long)dirty_index);
     }
     fprintf(stderr, "}\n");
 }
@@ -454,13 +454,16 @@ int dht_load_to_memory(HashTable* ht, char** err) {
 }
 
 void dht_free(HashTable* ht) {
+    bool success;
     if (ht->flags_ & HT_FLAG_IS_LOADED) {
         free(ht->data_);
     } else {
-        dht_memory_unmap_file(ht->data_, ht->datasize_);
+        success = dht_memory_unmap_file(ht->data_, ht->datasize_);
+        assert(success);
     }
-    dht_file_sync(ht->fd_);
-    dht_close_file(ht->fd_);
+    success = dht_file_sync(ht->fd_);
+    success = dht_close_file(ht->fd_);
+    assert(success);
     free((char*)ht->fname_);
     free(ht);
 }
@@ -587,7 +590,9 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     dht_memory_unmap_file(ht->data_, ht->datasize_);
     dht_close_file(ht->fd_);
 
-    rename(temp_fname, ht->fname_);
+    dht_delete_file(ht->fname_);
+    int renaming_ret = rename(temp_fname, ht->fname_);
+    assert(renaming_ret == 0);
     free((char*)temp_fname);
 
     temp_ht = dht_open(ht->fname_, opts, O_RDWR, err);

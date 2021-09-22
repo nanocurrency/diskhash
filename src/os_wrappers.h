@@ -39,7 +39,7 @@ bool dht_utf8_to_utf16(const char* src, unsigned short** dst);
 #endif
 int dht_read_file (dht_file_t file_descriptor, void * buffer, size_t size);
 dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access);
-void dht_close_file(dht_file_t file_descriptor);
+bool dht_close_file(dht_file_t file_descriptor);
 bool dht_delete_file(const char* file_path);
 bool dht_file_size(dht_file_t file_descriptor, size_t* file_size);
 bool dht_truncate_file(dht_file_t file_descriptor, size_t file_size);

@@ -1,12 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <stdint.h>
 
 #include "diskhash.h"
-
 
 typedef int64_t data_t;
 int dht_ismember(HashTable* ht, const char* k) {
