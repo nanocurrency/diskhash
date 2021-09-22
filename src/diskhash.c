@@ -153,7 +153,7 @@ void* dirty_at(HashTable* ht, size_t dirty_slot) {
                           + cheader_of(ht)->capacity_ * sizeof_st_element(cheader_of(ht)->opts_,
                                                                           cheader_of(ht)->capacity_);
 
-    void* dirty_entry = (void*)ds_data + dirty_slot * sizeof_ds_element;
+    void* dirty_entry = (void*)( ds_data + dirty_slot * sizeof_ds_element );
     return dirty_entry;
 }
 
