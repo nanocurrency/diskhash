@@ -454,13 +454,17 @@ int dht_load_to_memory(HashTable* ht, char** err) {
 }
 
 void dht_free(HashTable* ht) {
+    bool success;
     if (ht->flags_ & HT_FLAG_IS_LOADED) {
         free(ht->data_);
     } else {
-        dht_memory_unmap_file(ht->data_, ht->datasize_);
+        success = dht_memory_unmap_file(ht->data_, ht->datasize_);
+        assert(success);
     }
-    dht_file_sync(ht->fd_);
-    dht_close_file(ht->fd_);
+    success = dht_file_sync(ht->fd_);
+    assert((ht->flags_ & HT_FLAG_CAN_WRITE) == success); // Sync success is only applicable when the file is writable.
+    success = dht_close_file(ht->fd_);
+    assert(success);
     free((char*)ht->fname_);
     free(ht);
 }
@@ -587,7 +591,9 @@ size_t dht_reserve(HashTable* ht, size_t cap, char** err) {
     dht_memory_unmap_file(ht->data_, ht->datasize_);
     dht_close_file(ht->fd_);
 
-    rename(temp_fname, ht->fname_);
+    dht_delete_file(ht->fname_);
+    int renaming_ret = rename(temp_fname, ht->fname_);
+    assert(renaming_ret == 0);
     free((char*)temp_fname);
 
     temp_ht = dht_open(ht->fname_, opts, O_RDWR, err);
