@@ -74,13 +74,15 @@ dht_file_t dht_open_file(const char* file_path, int flags, bool limited_access)
     return file_descriptor;
 }
 
-void dht_close_file(dht_file_t file_descriptor)
+bool dht_close_file(dht_file_t file_descriptor)
 {
+    bool success = false;
 #ifdef _WIN32
-    CloseHandle(file_descriptor);
+    success = (CloseHandle(file_descriptor) != 0);
 #else
-    close(file_descriptor);
+    success = (close(file_descriptor) == 0);
 #endif
+    return success;
 }
 
 bool dht_delete_file(const char* file_path)
