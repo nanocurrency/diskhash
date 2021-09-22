@@ -21,8 +21,12 @@ void os_wrappers_dht_delete_file_works ()
 {
 	auto file_path = unique_path() / "test_file.dht";
 	const char* file_path_str = (const char*)(file_path.c_str ());
-	dht_open_file (file_path_str, O_RDWR | O_CREAT, false);
+	dht_file_t file_descriptor = dht_open_file (file_path_str, O_RDWR | O_CREAT, false);
+	assert (file_descriptor > 0);
 	assert (db_exists (file_path_str));
+
+	dht_close_file(file_descriptor);
+
 	dht_delete_file (file_path_str);
 	assert (!db_exists (file_path_str));
 }
@@ -35,3 +39,4 @@ void os_wrappers_dht_open_file_creates_file ()
 	assert (file_descriptor > 0);
 	assert (db_exists (file_path_str));
 }
+
