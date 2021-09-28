@@ -60,9 +60,18 @@ public:
         key_size (keysize),
         open_mode (m)
     {
-        instantiate_table (fname, keysize, m);
+        instantiate_table (db_file_path.c_str(), key_size, open_mode);
     }
-    DiskHash(DiskHash&& other):ht_(other.ht_) { other.ht_ = 0; }
+
+    DiskHash(DiskHash&& other) :
+        ht_(other.ht_),
+        db_file_path (other.db_file_path),
+        key_size (other.key_size)
+    {
+        other.ht_ = 0;
+        other.db_file_path = "";
+        other.key_size = 0;
+    }
 
     ~DiskHash() {
         if (ht_) dht_free(ht_);
@@ -223,11 +232,11 @@ public:
 
     struct iterator;
 
-    iterator begin() {
+    iterator begin() const {
         return iterator(0, *this);
     }
 
-    iterator end() {
+    iterator end() const {
         return iterator(used_slots(), *this);
     }
 
@@ -235,7 +244,7 @@ private:
     /**
      * Returns the number of used slots.
      */
-    unsigned long used_slots() {
+    unsigned long used_slots() const {
         return (unsigned long) dht_slots_used(ht_);
     }
 

@@ -14,7 +14,7 @@ namespace dht {
 template <typename T>
 struct DiskHash<T>::iterator {
 
-    iterator (size_t index, DiskHash<T> & dht)
+    iterator (size_t index, DiskHash<T> const & dht)
     :   dht_reference (dht),
         current_key (make_current_key (dht)),
         current_value (make_current_value (dht)),
@@ -35,7 +35,7 @@ struct DiskHash<T>::iterator {
         return *this;
     }
 
-    bool operator== (DiskHash<T>::iterator const & other_iterator) {
+    bool operator== (DiskHash<T>::iterator const & other_iterator) const {
         bool equal = (&dht_reference == &other_iterator.dht_reference)
             && (current_index == other_iterator.current_index)
             && ((current_key.get() != nullptr) == (other_iterator.current_key.get() != nullptr))
@@ -54,19 +54,19 @@ struct DiskHash<T>::iterator {
     }
 
 private:
-    DiskHash<T> & dht_reference;
+    DiskHash<T> const & dht_reference;
     size_t current_index = std::numeric_limits<size_t>::max();
     std::unique_ptr<std::string> current_key;
     std::unique_ptr<T> current_value;
     std::pair<std::string&, T&> current;
 
-    std::unique_ptr<std::string> make_current_key (DiskHash<T> & dht) {
+    std::unique_ptr<std::string> make_current_key (DiskHash<T> const & dht) {
         auto key = std::make_unique<std::string>();
         key->reserve(dht.key_size);
         return key;
     }
 
-    std::unique_ptr<T> make_current_value (DiskHash<T> & dht) {
+    std::unique_ptr<T> make_current_value (DiskHash<T> const & dht) {
         auto value = std::make_unique<T>();
         return value;
     }
