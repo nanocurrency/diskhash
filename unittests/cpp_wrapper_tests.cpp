@@ -11,6 +11,7 @@
 #include <string>
 #include <cstring>
 #include <cstdint>
+#include <utility>
 
 void cpp_wrapper_slow_test ();
 void cpp_wrapper_inserting_repeated_key_returns_false ();
@@ -39,6 +40,7 @@ void cpp_wrappper_iterator_begin_ok ();
 void cpp_wrappper_iterator_different_than_operator_works ();
 void cpp_wrappper_iterator_equals_to_operator_works ();
 void cpp_wrappper_iterator_increment_operator_works ();
+void cpp_wrappper_iterator_move_constructor_works ();
 
 int main (int argc, char ** argv)
 {
@@ -122,6 +124,9 @@ int main (int argc, char ** argv)
 
 	std::cout << "cpp_wrappper_iterator_begin_ok ():" << std::endl;
 	cpp_wrappper_iterator_begin_ok ();
+
+	std::cout << "cpp_wrappper_iterator_move_constructor_works ():" << std::endl;
+	cpp_wrappper_iterator_move_constructor_works ();
 
 	delete_temp_db_path (get_temp_path ());
 	return 0;
@@ -531,4 +536,24 @@ void cpp_wrappper_iterator_begin_ok ()
 
 	for (; it != end_it; ++it, ++counter);
 	assert (number_of_elements == counter);
+}
+
+void cpp_wrappper_iterator_move_constructor_works ()
+{
+	auto key_maxlen = static_cast<int> (std::to_string (std::numeric_limits<std::uint64_t>::max ()).size ());
+	auto ht (get_shared_ptr_to_dht_db<uint64_t> (key_maxlen));
+
+	auto key1 (random_string (key_maxlen));
+	auto key2 (random_string (key_maxlen));
+	ht->insert (key1.c_str (), 12);
+	ht->insert (key2.c_str (), 34);
+
+	auto number_of_elements (ht->size());
+	auto it = ht->begin();
+	++it;
+	auto another_it (std::move(it));
+
+	auto counter (0u);
+	for (; another_it != ht->end(); ++another_it, ++counter);
+	assert ((number_of_elements - 1) == counter);
 }

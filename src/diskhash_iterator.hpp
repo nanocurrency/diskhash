@@ -22,6 +22,15 @@ struct DiskHash<T>::iterator {
         current_index = set_forward_index (index);
     }
 
+    iterator (DiskHash<T>::iterator && other_a)
+    :   dht_reference (other_a.dht_reference),
+        current_key (make_current_key (*other_a.current_key)),
+        current_value (make_current_value (*other_a.current_value)),
+        current (std::pair<std::string&, T&>{*current_key, *current_value}),
+        current_index (other_a.current_index) {
+        other_a.set_forward_index (dht_reference.used_slots()); // moves other_a to the end.
+    }
+
     std::pair<std::string&, T&> & operator* () const {
         return current;
     }
@@ -66,8 +75,19 @@ private:
         return key;
     }
 
+    std::unique_ptr<std::string> make_current_key (std::string const & key_a) {
+        auto key = std::make_unique<std::string>(key_a);
+        key->reserve(dht_reference.key_size);
+        return key;
+    }
+
     std::unique_ptr<T> make_current_value (DiskHash<T> const & dht) {
         auto value = std::make_unique<T>();
+        return value;
+    }
+
+    std::unique_ptr<T> make_current_value (T const & value_a) {
+        auto value = std::make_unique<T>(value_a);
         return value;
     }
 
