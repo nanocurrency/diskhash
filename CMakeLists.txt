@@ -24,9 +24,8 @@ set(CXX_FLAGS
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
 
-set_target_properties(diskhash PROPERTIES PUBLIC_HEADER
-  "src/diskhash.h;src/diskhash.hpp"
-)
+file(GLOB HDR_FILES ${CMAKE_SOURCE_DIR}/src/*.h*)
+set_target_properties(diskhash PROPERTIES PUBLIC_HEADER "${HDR_FILES}")
 
 install(TARGETS diskhash
   EXPORT diskhashTargets
@@ -34,7 +33,7 @@ install(TARGETS diskhash
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
-  PUBLIC_HEADER DESTINATION include
+  PUBLIC_HEADER DESTINATION include/diskhash
 )
 
 install(EXPORT diskhashTargets
