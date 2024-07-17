@@ -24,7 +24,9 @@ set(CXX_FLAGS
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
 
-set_target_properties(diskhash PROPERTIES PUBLIC_HEADER src/diskhash.hpp)
+set_target_properties(diskhash PROPERTIES PUBLIC_HEADER
+  "src/diskhash.h;src/diskhash.hpp"
+)
 
 install(TARGETS diskhash
   EXPORT diskhashTargets
