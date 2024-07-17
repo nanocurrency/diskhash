@@ -18,6 +18,9 @@ include(setup)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
 
+#install(TARGETS diskhash DESTINATION lib)
+install(TARGETS diskhash DESTINATION lib/diskhash)
+
 if(DISKHASH_TESTS)
   include_directories(${CMAKE_SOURCE_DIR}/unittests)
 
