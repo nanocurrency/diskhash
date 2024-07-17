@@ -13,7 +13,13 @@ project(${PROJECT_NAME})
 option(WITH_ASAN ON)
 option(DISKHASH_TESTS ON)
 
-include(setup)
+set(CXX_FLAGS
+    CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_MINSIZEREL
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
