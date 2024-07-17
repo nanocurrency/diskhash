@@ -115,6 +115,7 @@ private:
         }
         // There is no other available return for dht_indexed_lookup ().
         assert (false);
+        return 0;
     }
 };
 
