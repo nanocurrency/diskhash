@@ -8,6 +8,7 @@
 #include <utility>
 #include <algorithm>
 #include <memory>
+#include <limits>
 
 namespace dht {
 
