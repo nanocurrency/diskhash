@@ -24,11 +24,21 @@ set(CXX_FLAGS
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
 
-#install(TARGETS diskhash DESTINATION lib)
-install(TARGETS diskhash DESTINATION lib/diskhash)
+set_target_properties(diskhash PROPERTIES PUBLIC_HEADER src/diskhash.hpp)
 
-install(FILES src/diskhash.hpp
-  DESTINATION include)
+install(TARGETS diskhash
+  EXPORT diskhashTargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+  PUBLIC_HEADER DESTINATION include
+)
+
+install(EXPORT diskhashTargets
+  FILE diskhashConfig.cmake
+  DESTINATION lib/cmake/diskhash
+)
 
 if(DISKHASH_TESTS)
   include_directories(${CMAKE_SOURCE_DIR}/unittests)
