@@ -13,10 +13,33 @@ project(${PROJECT_NAME})
 option(WITH_ASAN ON)
 option(DISKHASH_TESTS ON)
 
-include(setup)
+set(CXX_FLAGS
+    CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_MINSIZEREL
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_CXX_FLAGS_RELWITHDEBINFO
+)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_library(diskhash STATIC src/os_wrappers.c src/diskhash.c)
+
+file(GLOB HDR_FILES ${CMAKE_SOURCE_DIR}/src/*.h*)
+set_target_properties(diskhash PROPERTIES PUBLIC_HEADER "${HDR_FILES}")
+
+install(TARGETS diskhash
+  EXPORT diskhashTargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+  PUBLIC_HEADER DESTINATION include/diskhash
+)
+
+install(EXPORT diskhashTargets
+  FILE diskhashConfig.cmake
+  DESTINATION lib/cmake/diskhash
+)
 
 if(DISKHASH_TESTS)
   include_directories(${CMAKE_SOURCE_DIR}/unittests)
